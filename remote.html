@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b0c10">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Nova Remote">
+<link rel="icon" href="icon.png"><link rel="apple-touch-icon" href="icon.png">
+<title>Nova Remote</title>
+<style>
+  :root { --a: #ff7a18; --b: #ffb347; --bg: #0b0c10; --p1: #14161c; --p2: #1c1f27; --line: rgba(255,255,255,.1); --txt: #e8eaf0; --dim: #8c92a3; --ok: #22c55e; --err: #ef4444; --warn: #f59e0b; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--txt); font: 14px/1.3 -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); }
+  .colL { display: flex; flex-direction: column; gap: 10px; min-width: 0; } .wrap { align-items: start; }
+  @media (min-width: 900px) { .wrap { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); } }
+  header { display: flex; align-items: center; gap: 8px; } header img { width: 30px; height: 30px; border-radius: 8px; } header b { font-size: 15px; } .grow { flex: 1; }
+  .pill { padding: 4px 9px; border-radius: 6px; font-size: 11px; font-weight: 800; letter-spacing: .05em; background: var(--p2); color: var(--dim); }
+  .pill.live { background: var(--err); color: #fff; } .pill.rec { background: #7f1d1d; color: #fecaca; } .pill.on { background: var(--ok); color: #04140a; }
+  .mon { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .scr { position: relative; aspect-ratio: 16/9; background: #000; border-radius: 10px; overflow: hidden; border: 2px solid var(--line); }
+  .scr img { width: 100%; height: 100%; object-fit: cover; display: block; } .scr span { position: absolute; left: 8px; top: 6px; font-size: 10px; font-weight: 800; letter-spacing: .08em; padding: 2px 6px; border-radius: 4px; }
+  .scr.pgm { border-color: var(--err); } .scr.pgm span { background: var(--err); } .scr.pvw { border-color: var(--ok); } .scr.pvw span { background: var(--ok); color: #04140a; }
+  .scr em { position: absolute; left: 8px; bottom: 6px; font-style: normal; font-size: 12px; font-weight: 700; text-shadow: 0 1px 3px #000; }
+  .trans { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .big { border: 0; border-radius: 12px; padding: 16px 8px; font-weight: 900; font-size: 17px; letter-spacing: .06em; background: var(--p2); }
+  .big.cut { background: #2a2d36; } .big.auto { background: linear-gradient(135deg, var(--a), var(--b)); color: #fff; } .big.ftb.on { background: #000; outline: 2px solid var(--err); }
+  .card { background: var(--p1); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+  .plan { display: grid; grid-template-columns: 64px 1fr; gap: 8px; align-items: stretch; }
+  .plan .now { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 2px; border-left: 4px solid var(--c, var(--a)); padding-left: 10px; }
+  .plan .now small { font-size: 10px; font-weight: 800; letter-spacing: .08em; color: var(--dim); } .plan .now b { font-size: 18px; } .plan .now p { margin: 2px 0 0; color: var(--dim); font-size: 12.5px; }
+  .next { border: 0; border-radius: 12px; padding: 12px; background: linear-gradient(135deg, var(--a), var(--b)); color: #fff; display: flex; flex-direction: column; align-items: center; }
+  .next b { font-size: 20px; font-weight: 900; letter-spacing: .08em; } .next small { opacity: .9; font-size: 12px; }
+  .prev { border: 0; border-radius: 12px; background: var(--p2); font-size: 20px; }
+  .tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; } .tabs::-webkit-scrollbar { display: none; }
+  .tabs button { border: 0; background: var(--p2); color: var(--dim); font-weight: 800; font-size: 12px; padding: 9px 12px; border-radius: 8px; white-space: nowrap; }
+  .tabs button.on { background: var(--a); color: #fff; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 7px; margin-top: 8px; }
+  .tile { border: 2px solid var(--line); background: var(--p2); border-radius: 10px; padding: 12px 8px; text-align: left; font-weight: 700; font-size: 13px; min-height: 52px; display: flex; align-items: center; gap: 7px; overflow: hidden; }
+  .tile span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .tile i { width: 9px; height: 9px; border-radius: 50%; background: #4b5060; flex: 0 0 auto; }
+  .tile.program { border-color: var(--err); background: rgba(239,68,68,.14); } .tile.preview { border-color: var(--ok); background: rgba(34,197,94,.1); }
+  .tile.on { border-color: var(--a); background: rgba(255,122,24,.14); } .tile.on i { background: var(--a); box-shadow: 0 0 8px var(--a); }
+  .seg { display: inline-flex; background: var(--p2); border-radius: 9px; padding: 3px; margin-top: 8px; } .seg button { border: 0; background: none; color: var(--dim); font-weight: 800; font-size: 12px; padding: 7px 12px; border-radius: 7px; } .seg button.on { background: var(--a); color: #fff; }
+  .row { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 8px; } .row .tile { flex: 1; min-width: 110px; justify-content: center; text-align: center; }
+  .danger { border-color: rgba(239,68,68,.5) !important; }
+  #pin { position: fixed; inset: 0; background: radial-gradient(600px 400px at 50% 20%, rgba(255,122,24,.22), transparent), var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; z-index: 10; text-align: center; }
+  #pin img { width: 74px; height: 74px; border-radius: 18px; } #pin h1 { margin: 0; font-size: 22px; } #pin p { margin: 0; color: var(--dim); max-width: 340px; }
+  .dots { display: flex; gap: 12px; height: 18px; } .dots i { width: 14px; height: 14px; border-radius: 50%; background: var(--p2); border: 2px solid #3a3e4a; } .dots i.f { background: var(--a); border-color: var(--a); }
+  .pad { display: grid; grid-template-columns: repeat(3, 72px); gap: 10px; } .pad button { height: 60px; border-radius: 16px; border: 1px solid var(--line); background: var(--p1); font-size: 22px; font-weight: 700; }
+  #err { color: #fca5a5; min-height: 18px; font-weight: 700; }
+  #toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: #111; border: 1px solid var(--line); padding: 10px 16px; border-radius: 10px; font-weight: 700; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; }
+  #toast.on { opacity: 1; }
+  .off { display: none !important; }
+  .lyr { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 8px; } .lyr .big { font-size: 15px; padding: 14px 6px; }
+  .sub { font-size: 10.5px; color: var(--dim); font-weight: 800; letter-spacing: .08em; margin: 12px 0 0; }
+</style>
+</head>
+<body>
+<div id="pin">
+  <img src="icon.png" alt=""><h1>Nova Remote</h1><p id="pinText">Enter the remote PIN shown in Nova Studio (Team tab).</p>
+  <div class="dots" id="dots"></div><div id="err"></div>
+  <div class="pad" id="pad"></div>
+</div>
+<div class="wrap off" id="app">
+  <div class="colL">
+  <header><img src="icon.png" alt=""><b id="pcName">Nova Studio</b><span class="grow"></span><span class="pill" id="pStream">STREAM</span><span class="pill" id="pRec">REC</span><span class="pill" id="pLink">●</span></header>
+  <div class="mon"><div class="scr pvw"><img id="iPvw" alt=""><span>PREVIEW</span><em id="nPvw"></em></div><div class="scr pgm"><img id="iPgm" alt=""><span>PROGRAM</span><em id="nPgm"></em></div></div>
+  <div class="trans"><button class="big cut" data-a="cut">CUT</button><button class="big auto" data-a="auto">AUTO</button><button class="big ftb" id="bFtb" data-a="ftb">FTB</button></div>
+  <div class="card plan" id="planCard"><div class="now" id="planNow"><small>SERVICE PLAN</small><b>—</b></div><button class="prev" data-a="planPrev">◀</button><button class="next" data-a="planNext"><b>NEXT</b><small id="planNext">—</small></button></div>
+  </div>
+  <div class="card col2">
+    <div class="tabs" id="tabs"><button data-t="inputs" class="on">Inputs</button><button data-t="titles">Titles</button><button data-t="lyrics">Lyrics</button><button data-t="fx">Effects</button><button data-t="replay">Replay</button><button data-t="live">Stream</button></div>
+    <div id="pane"></div>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const qs = new URLSearchParams(location.search);
+const LOCAL = location.pathname === '/remote' && !qs.get('p');
+if (qs.get('p')) localStorage.setItem('nr.p', qs.get('p')); if (qs.get('s') != null) localStorage.setItem('nr.s', qs.get('s'));
+const P = LOCAL ? '' : (qs.get('p') || localStorage.getItem('nr.p') || ''); const SRV = qs.get('s') ?? localStorage.getItem('nr.s') ?? '';
+const peerOpts = s => { if (!s) return { debug: 0 }; try { const u = new URL(/^https?:/.test(s) ? s : 'https://' + s); return { debug: 0, host: u.hostname, port: +u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname || '/', secure: u.protocol === 'https:' }; } catch { return { debug: 0 }; } };
+let pin = localStorage.getItem('nr.pin') || '', entry = '', link = null, st = {}, tab = localStorage.getItem('nr.tab') || 'inputs', tapTo = localStorage.getItem('nr.tap') || 'preview', retry = 0;
+const toast = t => { const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 1600); };
+// ---------- PIN pad ----------
+function drawPin() { $('#dots').innerHTML = Array.from({ length: Math.max(6, entry.length) }, (_, i) => `<i class="${i < entry.length ? 'f' : ''}"></i>`).join(''); }
+$('#pad').innerHTML = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '⌫', '0', 'OK'].map(k => `<button data-k="${k}">${k}</button>`).join('');
+$('#pad').onclick = e => { const k = e.target.dataset.k; if (!k) return; if (k === '⌫') entry = entry.slice(0, -1); else if (k === 'OK') { if (entry.length >= 4) { pin = entry; connect(); } } else if (entry.length < 12) entry += k; drawPin(); if (entry.length === 6 && k !== 'OK') { pin = entry; connect(); } };
+drawPin();
+// ---------- link ----------
+function onMsg(m) {
+  if (m.t === 'ok') { localStorage.setItem('nr.pin', pin); $('#pin').classList.add('off'); $('#app').classList.remove('off'); retry = 0; $('#pLink').className = 'pill on'; return; }
+  if (m.t === 'denied') { localStorage.removeItem('nr.pin'); pin = ''; entry = ''; drawPin(); $('#err').textContent = m.reason || 'Wrong PIN'; $('#pin').classList.remove('off'); $('#app').classList.add('off'); return; }
+  if (m.t === 'state') { st = m; render(); return; }
+  if (m.t === 'thumb') { if (m.pgm) $('#iPgm').src = m.pgm; if (m.pvw) $('#iPvw').src = m.pvw; return; }
+  if (m.t === 'toast') toast(m.text);
+}
+function lost(why) { $('#pLink').className = 'pill'; if (!pin) return; retry++; setTimeout(connect, Math.min(5000, 800 + retry * 600)); if (why) toast(why); }
+function connect() {
+  if (!pin) { $('#pin').classList.remove('off'); return; }
+  $('#err').textContent = '';
+  if (LOCAL) {
+    const ws = new WebSocket(`wss://${location.host}/ws/remote`); link = { send: m => ws.readyState === 1 && ws.send(JSON.stringify(m)) };
+    ws.onopen = () => ws.send(JSON.stringify({ t: 'auth', pin, name: navigator.platform || 'Remote' }));
+    ws.onmessage = e => { try { onMsg(JSON.parse(e.data)); } catch {} };
+    ws.onclose = e => { if (e.code === 4003) return; if (e.code === 4029) { $('#err').textContent = e.reason; return; } lost(); };
+    return;
+  }
+  const go = () => { const peer = new Peer(peerOpts(SRV)); peer.on('open', () => { const c = peer.connect(P, { reliable: true, serialization: 'json', metadata: { kind: 'remote', pin } });
+      link = { send: m => c.open && c.send(m) }; c.on('data', onMsg); c.on('close', () => { try { peer.destroy(); } catch {} lost(); }); });
+    peer.on('error', e => { try { peer.destroy(); } catch {} lost(e.type === 'peer-unavailable' ? 'Nova Studio not found — is it open?' : 'No internet'); }); };
+  if (window.Peer) go(); else { const sc = document.createElement('script'); sc.src = 'peerjs.min.js'; sc.onload = go; sc.onerror = () => lost('No internet'); document.head.append(sc); }
+}
+const act = (action, target, extra) => { if (link) link.send({ t: 'action', action, target, extra }); if (navigator.vibrate) navigator.vibrate(12); };
+document.addEventListener('click', e => { const b = e.target.closest('[data-a]'); if (b && !b.closest('#pane')) act(b.dataset.a); });
+// ---------- UI ----------
+$('#tabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; tab = b.dataset.t; localStorage.setItem('nr.tab', tab); render(); };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function render() {
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === tab));
+  $('#pcName').textContent = st.name || 'Nova Studio';
+  $('#pStream').className = 'pill' + (st.streaming ? ' live' : ''); $('#pStream').textContent = st.streaming ? '● LIVE' : 'STREAM';
+  $('#pRec').className = 'pill' + (st.recording ? ' rec' : ''); $('#pRec').textContent = st.recording ? '● REC' : 'REC';
+  $('#bFtb').classList.toggle('on', !!st.ftb);
+  const byId = id => (st.inputs || []).find(i => i.id === id); $('#nPgm').textContent = (byId(st.programId) || {}).name || ''; $('#nPvw').textContent = (byId(st.previewId) || {}).name || '';
+  const pl = st.plan || { items: [], idx: -1 }; const cur = pl.items[pl.idx], nx = pl.items[pl.idx + 1];
+  $('#planCard').classList.toggle('off', !pl.items.length);
+  $('#planNow').style.setProperty('--c', cur ? cur.color || '#ff7a18' : '#444');
+  $('#planNow').innerHTML = `<small>${cur ? `NOW · CUE ${pl.idx + 1} OF ${pl.items.length}` : 'SERVICE PLAN — READY'}</small><b>${esc(cur ? cur.name : 'Press NEXT to start')}</b>${cur && cur.notes ? `<p>${esc(cur.notes)}</p>` : ''}`;
+  $('#planNext').textContent = nx ? nx.name : '—';
+  const pane = $('#pane'); let html = '';
+  if (tab === 'inputs') {
+    html += `<div class="seg" id="tapSeg"><button data-v="preview" class="${tapTo === 'preview' ? 'on' : ''}">Tap → Preview</button><button data-v="program" class="${tapTo === 'program' ? 'on' : ''}">Tap → Program</button></div><div class="grid">`;
+    for (const i of st.inputs || []) html += `<button class="tile ${i.tally || ''}" data-in="${esc(i.id)}"><i></i><span>${esc(i.name)}</span></button>`;
+    html += '</div>';
+  } else if (tab === 'titles') {
+    html += '<div class="sub">TITLES</div><div class="grid">' + (st.titles || []).map(t => `<button class="tile ${t.live ? 'on' : ''}" data-act="title" data-t="${esc(t.id)}"><i></i><span>${esc(t.name)}</span></button>`).join('') + '</div>';
+    html += '<div class="sub">L-BANDS</div><div class="grid">' + (st.lbands || []).map(t => `<button class="tile ${t.live ? 'on' : ''}" data-act="lband" data-t="${esc(t.id)}"><i></i><span>${esc(t.name)}</span></button>`).join('') + '</div>';
+    html += `<div class="row"><button class="tile danger" data-act="titlesOff">All titles off</button><button class="tile" data-act="lbandOff">L-Band off</button></div>`;
+  } else if (tab === 'lyrics') {
+    html += `<div class="sub">${esc(st.song || 'NO SONG CHOSEN')}${st.lyricsOn ? ' · ON AIR' : ''}</div><div class="lyr"><button class="big" data-act="lyricsPrev">◀ PREV</button><button class="big auto" data-act="lyricsNext">NEXT ▶</button></div>
+      <div class="row"><button class="tile ${st.lyricsOn ? 'on' : ''}" data-act="lyricsToggle"><i></i><span>Lyrics on / off</span></button></div>
+      <div class="sub">SONGS</div><div class="grid">` + (st.songs || []).map(s => `<button class="tile ${s.id === st.songId ? 'on' : ''}" data-act="lyricsSong" data-t="${esc(s.id)}"><i></i><span>${esc(s.title)}</span></button>`).join('') + '</div>';
+  } else if (tab === 'fx') {
+    html += '<div class="sub">LOOKS</div><div class="grid">' + (st.fxPresets || []).map(p => `<button class="tile ${p.on ? 'on' : ''}" data-act="fxPreset" data-t="${p.id}"><i></i><span>${esc(p.name)}</span></button>`).join('') + '</div>';
+    html += '<div class="sub">EFFECTS</div><div class="grid">' + (st.fx || []).map(f => `<button class="tile ${f.on ? 'on' : ''}" data-act="fxToggle" data-t="${f.id}"><i></i><span>${esc(f.name)}</span></button>`).join('') + '</div>';
+    html += '<div class="row"><button class="tile danger" data-act="fxOff">All effects off</button></div>';
+  } else if (tab === 'replay') {
+    html += `<div class="sub">INSTANT REPLAY${st.replaying ? ' · PLAYING' : ''}</div>
+      ${st.replaying ? '<div class="row"><button class="tile danger" data-act="replayLive" style="padding:16px">● BACK TO LIVE</button></div>' : ''}
+      <div class="lyr"><button class="big auto" data-act="replay5">Last 5 s</button><button class="big auto" data-act="replay8">Last 8 s</button><button class="big" data-act="replayMark">◆ Mark</button><button class="big" data-act="replayPlayMark">▶ Play mark</button></div>
+      <div class="row"><button class="tile" data-act="replay12">Last 12 s</button><button class="tile" data-act="replayFreeze">Freeze & punch-in</button></div>`;
+  } else if (tab === 'live') {
+    html += `<div class="sub">STREAM & RECORDING</div><div class="lyr">
+      <button class="big ${st.streaming ? '' : 'auto'}" data-act="${st.streaming ? 'streamStop' : 'streamStart'}" data-confirm="${st.streaming ? 'Stop the live stream?' : 'Go live now?'}">${st.streaming ? '■ STOP STREAM' : '● GO LIVE'}</button>
+      <button class="big ${st.recording ? '' : 'auto'}" data-act="${st.recording ? 'recordStop' : 'recordStart'}" data-confirm="${st.recording ? 'Stop recording?' : ''}">${st.recording ? '■ STOP REC' : '● RECORD'}</button></div>`;
+  }
+  pane.innerHTML = html;
+}
+$('#pane').addEventListener('click', e => {
+  const s = e.target.closest('#tapSeg button'); if (s) { tapTo = s.dataset.v; localStorage.setItem('nr.tap', tapTo); render(); return; }
+  const i = e.target.closest('[data-in]'); if (i) { act(tapTo === 'program' ? 'quickplay' : 'preview', i.dataset.in); return; }
+  const b = e.target.closest('[data-act]'); if (!b) return; if (b.dataset.confirm && !confirm(b.dataset.confirm)) return; act(b.dataset.act, b.dataset.t);
+});
+setInterval(() => { if (link) link.send({ t: 'ping' }); }, 5000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && link) link.send({ t: 'state?' }); });
+if (pin) { $('#pinText').textContent = 'Connecting…'; connect(); }
+</script>
+</body>
+</html>
