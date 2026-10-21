@@ -12,81 +12,135 @@
 <link rel="icon" href="icon.png"><link rel="apple-touch-icon" href="icon.png">
 <title>Nova Cam</title>
 <style>
-  :root { --a: #ff7a18; --b: #ffb347; --bg: #0b0c10; --panel: rgba(16,18,24,.78); --line: rgba(255,255,255,.12); --ok: #22c55e; --warn: #f59e0b; --err: #ef4444; }
+  :root { --a: #ff7a18; --b: #ffb347; --bg: #0b0c10; --panel: rgba(14,15,19,.82); --strip: rgba(8,9,11,.9); --line: rgba(255,255,255,.12); --ok: #22c55e; --warn: #f59e0b; --err: #ef4444; --txt: #e8eaf0; --dim: #8c92a3; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; height: 100%; background: #000; color: #fff; font: 14px/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden; user-select: none; touch-action: manipulation; }
+  html, body { margin: 0; height: 100%; background: #000; color: var(--txt); font: 13px/1.25 -apple-system, system-ui, "SF Pro Text", "Segoe UI", Roboto, sans-serif; overflow: hidden; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+  .mono { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
   #v { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
-  #v.mirror { transform: scaleX(-1); }
+  #v.mirror, #ov.mirror { transform: scaleX(-1); }
+  #ov, #guides { position: fixed; pointer-events: none; z-index: 1; }
+  #ov { image-rendering: auto; opacity: .9; }
   #frame { position: fixed; inset: 0; pointer-events: none; border: 0 solid transparent; transition: border-color .2s, border-width .2s; z-index: 2; }
-  #frame.program { border: 6px solid var(--err); box-shadow: inset 0 0 40px rgba(239,68,68,.45); }
-  #frame.preview { border: 6px solid var(--ok); }
+  #frame.program { border: 5px solid var(--err); box-shadow: inset 0 0 36px rgba(239,68,68,.4); }
+  #frame.preview { border: 5px solid var(--ok); }
   body.notally #frame { border-width: 0 !important; box-shadow: none !important; } body.notally #tally { visibility: hidden; }
-  #stealth { position: fixed; inset: 0; z-index: 20; background: #000; display: none; align-items: flex-end; justify-content: center; padding-bottom: 18px; color: #2a2a2a; font-size: 11px; font-weight: 700; }
+  #stealth { position: fixed; inset: 0; z-index: 30; background: #000; display: none; align-items: flex-end; justify-content: center; padding-bottom: 18px; color: #2a2a2a; font-size: 11px; font-weight: 700; }
   #stealth.on { display: flex; }
-  .bar { position: fixed; left: 0; right: 0; display: flex; align-items: center; gap: 10px; padding: max(10px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) 10px max(14px, env(safe-area-inset-left)); z-index: 5; }
-  .top { top: 0; background: linear-gradient(180deg, rgba(0,0,0,.65), transparent); }
-  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font-weight: 800; font-size: 12px; backdrop-filter: blur(8px); }
-  .pill i { width: 8px; height: 8px; border-radius: 50%; background: #6b7280; }
-  .pill.program { background: var(--err); border-color: transparent; } .pill.program i { background: #fff; animation: blink 1s infinite; }
-  .pill.preview { background: var(--ok); border-color: transparent; color: #04140a; } .pill.preview i { background: #04140a; }
+  /* ---- top strip (camera parameters) ---- */
+  .top { position: fixed; top: 0; left: 0; right: 0; z-index: 6; display: flex; align-items: center; gap: 6px; height: calc(42px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left)); background: var(--strip); border-bottom: 1px solid rgba(255,255,255,.06); }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 6px; background: #1b1d24; font-weight: 800; font-size: 11px; letter-spacing: .04em; white-space: nowrap; }
+  .pill i { width: 7px; height: 7px; border-radius: 50%; background: #6b7280; }
+  .pill.program { background: var(--err); color: #fff; } .pill.program i { background: #fff; animation: blink 1s infinite; }
+  .pill.preview { background: var(--ok); color: #04140a; } .pill.preview i { background: #04140a; }
   @keyframes blink { 50% { opacity: .2; } }
-  .name { font-weight: 900; font-size: 15px; text-shadow: 0 1px 3px #000; max-width: 34vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .grow { flex: 1; }
-  .sig { display: inline-flex; align-items: flex-end; gap: 2px; height: 16px; }
-  .sig b { width: 4px; border-radius: 2px; background: rgba(255,255,255,.25); }
+  .name { font-weight: 800; font-size: 12.5px; max-width: 18vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff; }
+  .params { display: flex; align-items: stretch; gap: 2px; margin: 0 auto; height: 100%; }
+  .prm { display: flex; flex-direction: column; justify-content: center; align-items: center; min-width: 54px; padding: 0 8px; border: 0; background: none; color: var(--txt); border-radius: 6px; }
+  .prm small { font-size: 9px; font-weight: 700; color: var(--dim); letter-spacing: .08em; }
+  .prm b { font-size: 13.5px; font-weight: 700; white-space: nowrap; }
+  .prm.on { background: rgba(255,122,24,.16); } .prm.on b { color: var(--b); } .prm.auto b::after { content: ' A'; font-size: 9px; color: var(--dim); vertical-align: top; }
+  .tc { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; }
+  .tc b { font-size: 14px; font-weight: 700; letter-spacing: .02em; } .tc small { font-size: 9px; color: var(--dim); font-weight: 700; letter-spacing: .06em; }
+  .tc.rec b { color: var(--err); } .tc.rec small { color: var(--err); }
+  .sig { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; }
+  .sig b { width: 3px; border-radius: 1px; background: rgba(255,255,255,.22); }
   .sig b:nth-child(1) { height: 25%; } .sig b:nth-child(2) { height: 50%; } .sig b:nth-child(3) { height: 75%; } .sig b:nth-child(4) { height: 100%; }
   .sig.q1 b:nth-child(-n+1), .sig.q2 b:nth-child(-n+2), .sig.q3 b:nth-child(-n+3), .sig.q4 b:nth-child(-n+4) { background: currentColor; }
   .q4, .q3 { color: var(--ok); } .q2 { color: var(--warn); } .q1, .q0 { color: var(--err); }
-  #sigText { font-size: 12px; font-weight: 700; }
-  .side { position: fixed; right: max(12px, env(safe-area-inset-right)); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 5; }
-  .rb { width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: #fff; display: grid; place-items: center; backdrop-filter: blur(8px); font-size: 20px; transition: transform .1s, background .2s; }
+  #sigText { display: none; }
+  #batt { font-size: 11px; font-weight: 700; color: var(--txt); min-width: 34px; text-align: right; }
+  /* ---- bottom strip (audio, histogram, tools) ---- */
+  .bottom { position: fixed; bottom: 0; left: 0; right: 0; z-index: 6; display: flex; align-items: center; gap: 10px; height: calc(54px + env(safe-area-inset-bottom)); padding: 0 max(10px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(10px, env(safe-area-inset-left)); background: var(--strip); border-top: 1px solid rgba(255,255,255,.06); }
+  #histo { width: 112px; height: 38px; background: #0c0d10; border: 1px solid #23262e; border-radius: 4px; }
+  .meter { display: flex; flex-direction: column; gap: 3px; width: min(30vw, 230px); }
+  .meter .ch { position: relative; height: 9px; border-radius: 2px; background: #15171c; overflow: hidden; }
+  .meter .ch i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, #22c55e 0%, #22c55e 70%, #eab308 84%, #ef4444 96%); background-size: min(30vw, 230px) 100%; transition: width .06s linear; }
+  .meter .ch em { position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; left: 0; opacity: .85; }
+  .meter .scale { display: flex; justify-content: space-between; font-size: 8.5px; color: var(--dim); font-weight: 700; }
+  .meter.clip .ch { box-shadow: 0 0 0 1px var(--err); } .meter.off { opacity: .35; }
+  .mlabel { font-size: 9px; font-weight: 800; color: var(--dim); writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: .1em; }
+  .tools { display: flex; gap: 4px; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
+  .tools::-webkit-scrollbar { display: none; }
+  .tl { border: 0; background: #1b1d24; color: var(--dim); font-weight: 800; font-size: 10.5px; letter-spacing: .06em; padding: 7px 9px; border-radius: 6px; white-space: nowrap; }
+  .tl.on { color: #111; background: var(--b); }
+  /* ---- right column ---- */
+  .side { position: fixed; right: max(10px, env(safe-area-inset-right)); top: calc(50% + 6px); transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 9px; z-index: 5; }
+  .rb { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: #fff; display: grid; place-items: center; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: transform .1s, background .2s; }
   .rb:active { transform: scale(.92); } .rb.on { background: linear-gradient(135deg, var(--a), var(--b)); border-color: transparent; }
-  .rb svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  .zoom { position: fixed; left: max(12px, env(safe-area-inset-left)); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 5; }
-  .ztrack { position: relative; width: 46px; height: 46vh; max-height: 260px; border-radius: 23px; background: var(--panel); border: 1px solid var(--line); touch-action: none; backdrop-filter: blur(8px); }
-  .zfill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 23px; background: linear-gradient(0deg, rgba(255,122,24,.15), rgba(255,179,71,.55)); }
-  .zknob { position: absolute; left: 6px; right: 6px; height: 34px; border-radius: 17px; background: #fff; color: #111; font-weight: 900; font-size: 12px; display: grid; place-items: center; box-shadow: 0 2px 10px rgba(0,0,0,.5); }
-  .zp { display: flex; flex-direction: column; gap: 6px; }
-  .zp button { width: 46px; height: 30px; border-radius: 15px; border: 1px solid var(--line); background: var(--panel); color: #fff; font-weight: 800; font-size: 12px; }
-  .bottom { bottom: 0; justify-content: center; background: linear-gradient(0deg, rgba(0,0,0,.6), transparent); padding-bottom: max(12px, env(safe-area-inset-bottom)); }
-  .hint { font-size: 12px; color: rgba(255,255,255,.75); text-align: center; }
-  #banner { position: fixed; left: 50%; top: 64px; transform: translateX(-50%); z-index: 8; display: none; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 14px; font-weight: 800; box-shadow: 0 10px 30px rgba(0,0,0,.5); max-width: 92vw; text-align: center; }
+  .rb svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  #bRec { width: 64px; height: 64px; border: 3px solid #fff; background: rgba(0,0,0,.35); padding: 0; }
+  #bRec span { width: 46px; height: 46px; border-radius: 50%; background: var(--err); transition: border-radius .2s, width .2s, height .2s; }
+  #bRec.on span { width: 26px; height: 26px; border-radius: 6px; }
+  /* ---- zoom (left) ---- */
+  .zoom { position: fixed; left: max(10px, env(safe-area-inset-left)); top: calc(50% + 6px); transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 5; }
+  .ztrack { position: relative; width: 40px; height: 40vh; max-height: 230px; border-radius: 20px; background: var(--panel); border: 1px solid var(--line); touch-action: none; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .zfill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 20px; background: linear-gradient(0deg, rgba(255,122,24,.12), rgba(255,179,71,.5)); }
+  .zknob { position: absolute; left: 5px; right: 5px; height: 30px; border-radius: 15px; background: #fff; color: #111; font-weight: 900; font-size: 11px; display: grid; place-items: center; box-shadow: 0 2px 10px rgba(0,0,0,.5); }
+  .zp { display: flex; flex-direction: column; gap: 5px; }
+  .zp button { width: 40px; height: 26px; border-radius: 13px; border: 1px solid var(--line); background: var(--panel); color: #fff; font-weight: 800; font-size: 11px; }
+  /* ---- parameter drawer ---- */
+  #drawer { position: fixed; left: 50%; bottom: calc(62px + env(safe-area-inset-bottom)); transform: translate(-50%, 20px); z-index: 7; min-width: min(560px, 80vw); max-width: 92vw; padding: 10px 14px; border-radius: 12px; background: rgba(14,15,19,.94); border: 1px solid var(--line); opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; }
+  #drawer.open { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
+  #drawer h4 { margin: 0 0 8px; font-size: 11px; letter-spacing: .1em; color: var(--dim); display: flex; justify-content: space-between; }
+  #drawer .r { display: flex; align-items: center; gap: 10px; margin: 6px 0; flex-wrap: wrap; }
+  #drawer input[type=range] { flex: 1; min-width: 180px; accent-color: var(--a); }
+  #drawer .val { min-width: 64px; text-align: right; font-weight: 800; }
+  .chip { border: 1px solid var(--line); background: #1b1d24; color: var(--txt); font-weight: 700; font-size: 12px; padding: 7px 11px; border-radius: 8px; }
+  .chip.on { background: linear-gradient(135deg, var(--a), var(--b)); color: #fff; border-color: transparent; }
+  /* ---- focus square & level ---- */
+  #fsq { position: fixed; width: 74px; height: 74px; margin: -37px 0 0 -37px; border: 2px solid var(--b); border-radius: 4px; z-index: 4; pointer-events: none; opacity: 0; transition: opacity .3s, transform .3s; transform: scale(1.3); }
+  #fsq.on { opacity: 1; transform: scale(1); }
+  #level { position: fixed; left: 50%; top: 50%; width: 180px; height: 0; border-top: 2px solid rgba(255,255,255,.85); margin-left: -90px; z-index: 3; pointer-events: none; display: none; }
+  #level.ok { border-color: var(--ok); } #level::before, #level::after { content: ''; position: absolute; top: -6px; width: 2px; height: 10px; background: inherit; }
+  #levelTxt { position: fixed; left: 50%; top: calc(50% + 10px); transform: translateX(-50%); z-index: 3; font-size: 11px; font-weight: 800; display: none; text-shadow: 0 1px 3px #000; }
+  #banner { position: fixed; left: 50%; top: calc(54px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 8; display: none; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 10px; font-weight: 800; box-shadow: 0 10px 30px rgba(0,0,0,.5); max-width: 92vw; text-align: center; }
   #banner.err { display: flex; background: var(--err); } #banner.warn { display: flex; background: var(--warn); color: #1a1004; } #banner.ok { display: flex; background: var(--ok); color: #04140a; }
-  .sheet { position: fixed; inset: auto 0 0 0; z-index: 9; background: #13151b; border-top: 1px solid var(--line); border-radius: 20px 20px 0 0; padding: 16px 18px max(18px, env(safe-area-inset-bottom)); transform: translateY(105%); transition: transform .25s; max-height: 86vh; overflow: auto; }
+  .sheet { position: fixed; inset: auto 0 0 0; z-index: 9; background: #121318; border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; padding: 14px 18px max(18px, env(safe-area-inset-bottom)); transform: translateY(105%); transition: transform .25s; max-height: 88vh; overflow: auto; }
   .sheet.open { transform: none; }
-  .sheet h3 { margin: 0 0 10px; font-size: 16px; }
-  .row { display: flex; align-items: center; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
-  .row label { min-width: 110px; color: #aab; font-size: 13px; font-weight: 700; }
-  .seg { display: inline-flex; background: #0b0c10; border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
-  .seg button { border: 0; background: none; color: #ccd; padding: 7px 12px; border-radius: 8px; font-weight: 700; }
+  .sheet h3 { margin: 0 0 8px; font-size: 15px; } .sheet h5 { margin: 14px 0 4px; font-size: 10.5px; letter-spacing: .1em; color: var(--b); }
+  .row { display: flex; align-items: center; gap: 10px; margin: 8px 0; flex-wrap: wrap; }
+  .row label { min-width: 110px; color: #aab; font-size: 12.5px; font-weight: 700; }
+  .seg { display: inline-flex; background: #0b0c10; border: 1px solid var(--line); border-radius: 9px; padding: 3px; flex-wrap: wrap; }
+  .seg button { border: 0; background: none; color: #ccd; padding: 6px 11px; border-radius: 7px; font-weight: 700; font-size: 12.5px; }
   .seg button.on { background: linear-gradient(135deg, var(--a), var(--b)); color: #fff; }
-  input[type=text] { background: #0b0c10; border: 1px solid var(--line); border-radius: 10px; color: #fff; padding: 9px 12px; font-size: 14px; flex: 1; min-width: 160px; }
+  input[type=text] { background: #0b0c10; border: 1px solid var(--line); border-radius: 9px; color: #fff; padding: 8px 11px; font-size: 14px; flex: 1; min-width: 160px; user-select: text; -webkit-user-select: text; }
   input[type=range] { flex: 1; accent-color: var(--a); }
   .btn { border: 0; border-radius: 10px; padding: 10px 16px; font-weight: 800; background: linear-gradient(135deg, var(--a), var(--b)); color: #fff; }
-  .btn.ghost { background: #232631; }
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .stats div { background: #0b0c10; border: 1px solid var(--line); border-radius: 10px; padding: 8px; } .stats small { display: block; color: #889; font-size: 11px; } .stats b { font-size: 14px; }
-  #start { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 30px; text-align: center; background: radial-gradient(600px 400px at 50% 30%, rgba(255,122,24,.25), transparent), #0b0c10; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .stats div { background: #0b0c10; border: 1px solid var(--line); border-radius: 8px; padding: 7px; } .stats small { display: block; color: #889; font-size: 10.5px; } .stats b { font-size: 13px; }
+  .hint { font-size: 12px; color: rgba(255,255,255,.75); }
+  #start { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 30px; text-align: center; background: radial-gradient(600px 400px at 50% 30%, rgba(255,122,24,.25), transparent), #0b0c10; }
   #start img { width: 84px; height: 84px; border-radius: 20px; }
   #start h1 { margin: 0; font-size: 24px; } #start p { margin: 0; color: #aab; max-width: 420px; }
-  #turn { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6; display: none; flex-direction: column; align-items: center; gap: 12px; padding: 22px 26px; border-radius: 20px; background: rgba(8,9,12,.78); backdrop-filter: blur(8px); text-align: center; font-weight: 800; max-width: 80vw; pointer-events: none; }
+  #turn { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6; display: none; flex-direction: column; align-items: center; gap: 12px; padding: 22px 26px; border-radius: 20px; background: rgba(8,9,12,.82); text-align: center; font-weight: 800; max-width: 80vw; pointer-events: none; }
   #turn.on { display: flex; } #turn small { color: #aab; font-weight: 600; }
   #turn .ph { width: 34px; height: 58px; border: 3px solid #fff; border-radius: 8px; animation: turn 2.2s ease-in-out infinite; }
   @keyframes turn { 0%, 25% { transform: rotate(0); } 55%, 100% { transform: rotate(-90deg); } }
   #lockOverlay { position: fixed; inset: 0; z-index: 7; display: none; } #lockOverlay.on { display: block; }
-  .rot { display: none; } @media (orientation: portrait) { .rot { display: block; } }
+  @media (orientation: portrait) { .params .prm:nth-child(n+4) { display: none; } .meter { width: 34vw; } #histo { display: none; } .name { display: none; } }
+  @media (max-height: 360px) { .ztrack { height: 34vh; } .zp { display: none; } }
 </style>
 </head>
 <body>
 <video id="v" playsinline autoplay muted></video>
+<canvas id="ov"></canvas><canvas id="guides"></canvas>
 <div id="frame"></div>
+<div id="fsq"></div><div id="level"></div><div id="levelTxt"></div>
 <div id="stealth">● Nova Cam is on — double-tap to show</div>
-<div class="bar top">
+<div class="top">
   <span class="pill" id="tally"><i></i><span id="tallyText">CONNECTING</span></span>
   <span class="name" id="camName">Nova Cam</span>
-  <span class="grow"></span>
+  <div class="params">
+    <button class="prm" data-p="res"><small>RES · FPS</small><b class="mono" id="pRes">1080 · 30</b></button>
+    <button class="prm" data-p="zoom"><small>ZOOM</small><b class="mono" id="pZoom">1.0×</b></button>
+    <button class="prm auto" data-p="ev" id="prmEv"><small>EXPOSURE</small><b class="mono" id="pEv">±0.0</b></button>
+    <button class="prm auto" data-p="wb" id="prmWb"><small>WHITE BAL</small><b class="mono" id="pWb">AWB</b></button>
+    <button class="prm auto" data-p="focus" id="prmFocus"><small>FOCUS</small><b id="pFocus">AF</b></button>
+    <button class="prm" data-p="mic"><small>AUDIO</small><b id="pMic">MIC</b></button>
+  </div>
+  <div class="tc" id="tc"><b class="mono" id="tcTime">00:00:00</b><small id="tcLabel">ON AIR 00:00</small></div>
   <span class="sig q0" id="sig"><b></b><b></b><b></b><b></b></span><span id="sigText">—</span>
-  <span class="pill" id="batt" style="display:none"></span>
+  <span id="batt" class="mono" style="display:none"></span>
 </div>
 <div id="banner"></div>
 <div class="zoom" id="zoomBox">
@@ -96,10 +150,21 @@
 <div class="side">
   <button class="rb" id="bTorch" title="Torch"><svg viewBox="0 0 24 24"><path d="M9 2h6l-1 6H10z"/><path d="M10 8h4v14h-4z"/></svg></button>
   <button class="rb" id="bFlip" title="Front / back"><svg viewBox="0 0 24 24"><path d="M3 7h3l2-3h8l2 3h3v12H3z"/><path d="M9 13a3 3 0 0 0 5.6 1.5M15 11a3 3 0 0 0-5.6-1.5"/></svg></button>
+  <button class="rb" id="bRec" title="Record a clean copy (sent to the studio PC)"><span></span></button>
   <button class="rb" id="bLock" title="Lock the screen buttons"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></button>
   <button class="rb" id="bSet" title="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg></button>
 </div>
-<div class="bar bottom"><span class="hint" id="hint"><span class="rot">Turn your phone sideways for a wide picture • </span>Nova Studio controls this camera</span></div>
+<div class="bottom">
+  <canvas id="histo" width="112" height="38"></canvas>
+  <span class="mlabel">AUDIO</span>
+  <div class="meter off" id="meter"><div class="ch"><i id="mL"></i><em id="pL"></em></div><div class="ch"><i id="mR"></i><em id="pR"></em></div>
+    <div class="scale mono"><span>-48</span><span>-36</span><span>-24</span><span>-12</span><span>-6</span><span>0</span></div></div>
+  <div class="tools" id="tools">
+    <button class="tl" data-t="grid">GRID</button><button class="tl" data-t="guide">FRAME</button><button class="tl" data-t="zebra">ZEBRA</button>
+    <button class="tl" data-t="peak">PEAKING</button><button class="tl" data-t="false">FALSE COL</button><button class="tl" data-t="level">LEVEL</button>
+  </div>
+</div>
+<div id="drawer"></div>
 <div id="lockOverlay"></div>
 <div id="turn"><div class="ph"></div><div>Turn the phone sideways</div><small>for a landscape (16:9) picture</small></div>
 
@@ -110,10 +175,16 @@
   <div class="row"><label>Quality</label><div class="seg" id="resSeg"><button data-v="720">720p</button><button data-v="1080">1080p</button></div></div>
   <div class="row"><label>Frame rate</label><div class="seg" id="fpsSeg"><button data-v="24">24</button><button data-v="30">30</button><button data-v="60">60</button></div></div>
   <div class="row"><label>Microphone</label><div class="seg" id="micSeg"><button data-v="1">Send sound</button><button data-v="0">Off</button></div></div>
+  <div class="row"><label>Voice clean</label><div class="seg" id="nsSeg"><button data-v="0">Off (music)</button><button data-v="1">On (speech)</button></div></div>
   <div class="row" id="focusRow"><label>Focus</label><div class="seg" id="focusSeg"><button data-v="continuous">Auto</button><button data-v="manual">Locked</button></div></div>
   <div class="row" id="expRow"><label>Brightness</label><input type="range" id="expIn" min="-2" max="2" step="0.1" value="0"></div>
+  <h5>OVERLAYS</h5>
+  <div class="row"><label>Frame guide</label><div class="seg" id="guideSeg"><button data-v="916">9:16</button><button data-v="43">4:3</button><button data-v="11">1:1</button><button data-v="239">2.39:1</button><button data-v="safe">Safe 90%</button></div></div>
+  <div class="row"><label>Zebra level</label><div class="seg" id="zebSeg"><button data-v="0.9">90%</button><button data-v="0.95">95%</button><button data-v="1">100%</button></div></div>
+  <div class="row"><label>Peaking colour</label><div class="seg" id="pkSeg"><button data-v="#ff3b30">Red</button><button data-v="#34c759">Green</button><button data-v="#ffffff">White</button></div></div>
+  <h5>LINK</h5>
   <div class="stats" id="stats"></div>
-  <p class="hint" style="text-align:left;margin-top:14px"><b>Put Nova Cam on your home screen:</b> Android Chrome — ⋮ menu → <i>Add to Home screen</i>. iPhone Safari — Share → <i>Add to Home Screen</i>. Next time just tap the icon: it connects by itself.</p>
+  <p class="hint" style="text-align:left;margin-top:12px"><b>Home screen:</b> Android Chrome — ⋮ → <i>Add to Home screen</i>. iPhone Safari — Share → <i>Add to Home Screen</i>. Next time just tap the icon.</p>
   <div class="row"><button class="btn" id="closeSheet">Done</button></div>
 </div>
 
@@ -142,7 +213,7 @@ if (LOCAL) $('#mf').href = '/manifest.webmanifest?k=' + encodeURIComponent(K); e
 let ID = localStorage.getItem('nova.id'); if (!ID) { ID = 'ph' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); localStorage.setItem('nova.id', ID); }
 const guessName = () => { const ua = navigator.userAgent; const m = /Android [\d.]+; ([^;)]+)/.exec(ua); return m ? m[1].replace(/Build.*/, '').trim().slice(0, 28) : /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : 'Phone'; };
 const S = { name: localStorage.getItem('nova.name') || guessName(), res: +(localStorage.getItem('nova.res') || 1080), fps: +(localStorage.getItem('nova.fps') || 30), mic: localStorage.getItem('nova.mic') !== '0',
-  facing: localStorage.getItem('nova.facing') || 'environment', orient: localStorage.getItem('nova.orient') || 'landscape', torch: false, zoom: 1, zcaps: null, mode: 'rtc', tally: '', pcName: '', locked: false };
+  facing: localStorage.getItem('nova.facing') || 'environment', orient: localStorage.getItem('nova.orient') || 'landscape', ns: localStorage.getItem('nova.ns') === '1', torch: false, zoom: 1, zcaps: null, mode: 'rtc', tally: '', pcName: '', locked: false };
 let SID = '', stream = null, ws = null, pc = null, jpegTimer = null, wakeLock = null, retry = 0, zoomSpeed = 0, zoomTimer = null;
 const rtts = []; let lastStatus = {};
 
@@ -152,7 +223,7 @@ async function openCamera() {
   const h = S.res, w = Math.round(h * 16 / 9);
   stream = await navigator.mediaDevices.getUserMedia({
     video: { facingMode: S.facing, width: { ideal: w }, height: { ideal: h }, frameRate: { ideal: S.fps } },
-    audio: S.mic ? { echoCancellation: false, noiseSuppression: false, autoGainControl: true } : false });
+    audio: S.mic ? { echoCancellation: false, noiseSuppression: !!S.ns, autoGainControl: true, channelCount: { ideal: 2 } } : false });
   const v = $('#v'); v.srcObject = stream; v.classList.toggle('mirror', S.facing === 'user'); await v.play().catch(() => {});
   const track = stream.getVideoTracks()[0];
   const caps = track.getCapabilities ? track.getCapabilities() : {};
@@ -164,6 +235,7 @@ async function openCamera() {
   S.zoom = (track.getSettings && track.getSettings().zoom) || 1; drawZoom(); drawZoomPresets();
   // replace the tracks in a running WebRTC link (switching front / back or quality)
   if (pc) for (const s of pc.getSenders()) { const nt = stream.getTracks().find(t => s.track && t.kind === s.track.kind); if (nt) await s.replaceTrack(nt).catch(() => {}); }
+  setupAudio(stream); updateParams(); setTimeout(placeOverlays, 100);
   sendStatus(true);
 }
 async function setZoom(z) {
@@ -264,6 +336,9 @@ async function onMsg(m) {
     case 'exposureMode': applyAdv({ exposureMode: m.mode }); S.expMode = m.mode; break;
     case 'whiteBalance': applyAdv(m.mode === 'manual' && S.ctCaps && m.kelvin ? { whiteBalanceMode: 'manual', colorTemperature: Math.max(S.ctCaps.min, Math.min(S.ctCaps.max, +m.kelvin)) } : { whiteBalanceMode: m.mode }); S.wbMode = m.mode; break;
     case 'focusPoint': applyAdv({ focusMode: 'single-shot', pointsOfInterest: [{ x: +m.x, y: +m.y }] }); break;
+    case 'iso': if (m.on) isoStart(); else isoStop(); break;
+    case 'ns': setNs(!!m.on); break;
+    case 'tool': if (m.name in PRO.tools && !!PRO.tools[m.name] !== !!m.on) document.querySelector(`#tools [data-t=${m.name}]`).click(); break;
     case 'restartCam': openCamera().then(() => { if (pc) send({ t: 'renegotiate' }); }).catch(() => {}); break;
     case 'identify': banner('ok', 'This is ' + S.name); if (navigator.vibrate) navigator.vibrate(300); setTimeout(() => banner(), 2000); break;
   }
@@ -322,7 +397,7 @@ let battery = null; if (navigator.getBattery) navigator.getBattery().then(b => {
 function sendStatus(force) {
   const t = stream && stream.getVideoTracks()[0]; const st = t && t.getSettings ? t.getSettings() : {};
   const s = { t: 'status', name: S.name, q: S.q, rtt: S.rtt != null ? Math.round(S.rtt) : null, jitter: S.jitter != null ? Math.round(S.jitter) : null, loss: Math.round(lossPct * 10) / 10,
-    battery: battery ? Math.round(battery.level * 100) : null, charging: battery ? battery.charging : null, zoom: Math.round(S.zoom * 100) / 100, zcaps: S.zcaps, torch: S.torch, torchOk: !!S.torchOk, expCaps: S.expCaps ? { min: S.expCaps.min, max: S.expCaps.max, step: S.expCaps.step } : null, exp: S.exp || 0, expModes: S.expModes, wbModes: S.wbModes, focusModes: S.focusModes, ct: S.ctCaps ? { min: S.ctCaps.min, max: S.ctCaps.max } : null, pointOk: !!S.pointOk, stealth: $('#stealth').classList.contains('on'), locked: !!S.locked,
+    battery: battery ? Math.round(battery.level * 100) : null, charging: battery ? battery.charging : null, zoom: Math.round(S.zoom * 100) / 100, zcaps: S.zcaps, torch: S.torch, torchOk: !!S.torchOk, expCaps: S.expCaps ? { min: S.expCaps.min, max: S.expCaps.max, step: S.expCaps.step } : null, exp: S.exp || 0, expModes: S.expModes, wbModes: S.wbModes, focusModes: S.focusModes, ct: S.ctCaps ? { min: S.ctCaps.min, max: S.ctCaps.max } : null, pointOk: !!S.pointOk, stealth: $('#stealth').classList.contains('on'), locked: !!S.locked, rec: typeof ISO !== 'undefined' && ISO.on, recMB: typeof ISO !== 'undefined' ? Math.round(ISO.queuedMB) : 0, level: typeof level !== 'undefined' ? Math.round(level) : null, ns: !!S.ns, mic: !!S.mic,
     facing: S.facing, orient: portraitQ.matches ? 'portrait' : 'landscape', w: st.width, h: st.height, fps: st.frameRate ? Math.round(st.frameRate) : S.fps, mode: S.mode, net: navigator.connection ? navigator.connection.effectiveType : null };
   const key = JSON.stringify(s); if (!force && key === lastStatus.key && Date.now() - lastStatus.at < 5000) return; lastStatus = { key, at: Date.now() }; send(s);
 }
@@ -341,7 +416,7 @@ function banner(kind, text) { const b = $('#banner'); b.className = kind || ''; 
 // ---------- buttons ----------
 $('#bTorch').onclick = () => setTorch(!S.torch);
 $('#bFlip').onclick = () => { S.facing = S.facing === 'user' ? 'environment' : 'user'; localStorage.setItem('nova.facing', S.facing); openCamera(); };
-$('#bLock').onclick = () => { S.locked = !S.locked; $('#bLock').classList.toggle('on', S.locked); $('#lockOverlay').classList.toggle('on', S.locked); document.querySelectorAll('.zoom, #bTorch, #bFlip, #bSet').forEach(e => { e.style.opacity = S.locked ? .25 : 1; e.style.pointerEvents = S.locked ? 'none' : ''; }); };
+$('#bLock').onclick = () => { S.locked = !S.locked; $('#bLock').classList.toggle('on', S.locked); $('#lockOverlay').classList.toggle('on', S.locked); document.querySelectorAll('.zoom, #bTorch, #bFlip, #bSet, #bRec, .params, .tools').forEach(e => { e.style.opacity = S.locked ? .25 : 1; e.style.pointerEvents = S.locked ? 'none' : ''; }); };
 $('#bSet').onclick = () => { renderStats(); $('#sheet').classList.add('open'); };
 $('#closeSheet').onclick = () => $('#sheet').classList.remove('open');
 $('#nameIn').value = S.name; $('#camName').textContent = S.name;
@@ -375,6 +450,174 @@ async function begin() {
 $('#go').onclick = begin;
 if (localStorage.getItem('nova.started') && K) { $('#startText').textContent = 'Connecting to Nova Studio…'; begin(); }   // opened from the home-screen icon: start by itself
 $('#go').addEventListener('click', () => localStorage.setItem('nova.started', '1'));
+
+// ======================= PRO CAMERA (Blackmagic-style) =======================
+const PRO = { tools: JSON.parse(localStorage.getItem('nova.tools') || '{"grid":true}'), guide: localStorage.getItem('nova.guide') || '916', zebra: +(localStorage.getItem('nova.zebra') || 0.95), peakCol: localStorage.getItem('nova.peak') || '#ff3b30' };
+const saveTools = () => localStorage.setItem('nova.tools', JSON.stringify(PRO.tools));
+function videoRect() { const v = $('#v'), W = innerWidth, H = innerHeight, vw = v.videoWidth || 16, vh = v.videoHeight || 9; const s = Math.min(W / vw, H / vh); const w = vw * s, h = vh * s; return { x: (W - w) / 2, y: (H - h) / 2, w, h }; }
+function placeOverlays() { const r = videoRect(); for (const id of ['#ov', '#guides']) { const c = $(id); Object.assign(c.style, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' }); } drawGuides(r); }
+// ---- tool buttons ----
+document.querySelectorAll('#tools .tl').forEach(b => { b.classList.toggle('on', !!PRO.tools[b.dataset.t]); b.onclick = () => { const t = b.dataset.t; PRO.tools[t] = !PRO.tools[t]; b.classList.toggle('on', PRO.tools[t]); saveTools(); if (t === 'level' && PRO.tools.level) startLevel(); placeOverlays(); updateLevelVis(); }; });
+seg('#guideSeg', () => PRO.guide, v => { PRO.guide = v; localStorage.setItem('nova.guide', v); PRO.tools.guide = true; saveTools(); document.querySelector('#tools [data-t=guide]').classList.add('on'); placeOverlays(); });
+seg('#zebSeg', () => PRO.zebra, v => { PRO.zebra = +v; localStorage.setItem('nova.zebra', v); });
+seg('#pkSeg', () => PRO.peakCol, v => { PRO.peakCol = v; localStorage.setItem('nova.peak', v); });
+// ---- guides: thirds, centre, frame lines ----
+function drawGuides(r) {
+  const c = $('#guides'), dpr = devicePixelRatio || 1; c.width = Math.round(r.w * dpr); c.height = Math.round(r.h * dpr); const x = c.getContext('2d'); x.scale(dpr, dpr); x.clearRect(0, 0, r.w, r.h);
+  if (PRO.tools.grid) { x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 1; x.beginPath(); for (const k of [1 / 3, 2 / 3]) { x.moveTo(r.w * k, 0); x.lineTo(r.w * k, r.h); x.moveTo(0, r.h * k); x.lineTo(r.w, r.h * k); } x.stroke();
+    x.beginPath(); x.moveTo(r.w / 2 - 9, r.h / 2); x.lineTo(r.w / 2 + 9, r.h / 2); x.moveTo(r.w / 2, r.h / 2 - 9); x.lineTo(r.w / 2, r.h / 2 + 9); x.stroke(); }
+  if (PRO.tools.guide) {
+    let gw = r.w, gh = r.h; const g = PRO.guide;
+    if (g === 'safe') { gw = r.w * 0.9; gh = r.h * 0.9; }
+    else { const ar = g === '916' ? 9 / 16 : g === '43' ? 4 / 3 : g === '11' ? 1 : 2.39; if (r.w / r.h > ar) gw = r.h * ar; else gh = r.w / ar; }
+    const gx = (r.w - gw) / 2, gy = (r.h - gh) / 2;
+    x.fillStyle = g === 'safe' ? 'rgba(0,0,0,0)' : 'rgba(0,0,0,.45)'; x.fillRect(0, 0, r.w, gy); x.fillRect(0, gy + gh, r.w, r.h - gy - gh); x.fillRect(0, gy, gx, gh); x.fillRect(gx + gw, gy, r.w - gx - gw, gh);
+    x.strokeStyle = 'rgba(255,214,10,.85)'; x.setLineDash(g === 'safe' ? [6, 5] : []); x.strokeRect(gx + .5, gy + .5, gw - 1, gh - 1); x.setLineDash([]);
+  }
+}
+// ---- scopes: histogram, zebra, peaking, false colour (computed small, drawn over the picture) ----
+const SW = 320, SH = 180; const sc = document.createElement('canvas'); sc.width = SW; sc.height = SH; const sx = sc.getContext('2d', { willReadFrequently: true });
+const ov = $('#ov'); ov.width = SW; ov.height = SH; const ox = ov.getContext('2d'); const ovImg = ox.createImageData(SW, SH);
+const histo = $('#histo').getContext('2d'); let phase = 0; const lumaBuf = new Float32Array(SW * SH);
+function falseCol(l) { return l < 0.03 ? [110, 0, 140] : l < 0.12 ? [25, 70, 230] : l < 0.38 ? [70, 70, 70] : l < 0.52 ? [40, 200, 70] : l < 0.62 ? [140, 140, 140] : l < 0.7 ? [255, 120, 170] : l < 0.9 ? [175, 175, 175] : l < 0.98 ? [255, 215, 0] : [255, 30, 30]; }
+function scopes() {
+  const v = $('#v'); if (!v.videoWidth || document.hidden || $('#stealth').classList.contains('on')) return;
+  try { sx.drawImage(v, 0, 0, SW, SH); } catch { return; }
+  const d = sx.getImageData(0, 0, SW, SH).data; const bins = new Uint32Array(64);
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) { const l = (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255; lumaBuf[p] = l; bins[Math.min(63, (l * 64) | 0)]++; }
+  // histogram
+  const hw = 112, hh = 38; histo.clearRect(0, 0, hw, hh); let mx = 1; for (const b of bins) mx = Math.max(mx, b); histo.fillStyle = 'rgba(235,238,245,.85)';
+  for (let i = 0; i < 64; i++) { const bh = Math.sqrt(bins[i] / mx) * (hh - 2); histo.fillRect(i * hw / 64, hh - bh, hw / 64 + 0.5, bh); }
+  histo.fillStyle = bins[63] > SW * SH * 0.02 ? '#ef4444' : 'transparent'; histo.fillRect(hw - 3, 0, 3, hh);
+  const t = PRO.tools; const o = ovImg.data;
+  if (!t.zebra && !t.peak && !t.false) { if (ov.dataset.used) { ox.clearRect(0, 0, SW, SH); ov.dataset.used = ''; } return; }
+  phase = (phase + 1) % 8; let gmax = 0; const grad = t.peak ? new Float32Array(SW * SH) : null;
+  if (t.peak) for (let y = 1; y < SH - 1; y++) for (let x = 1; x < SW - 1; x++) { const p = y * SW + x;
+    const gx = -lumaBuf[p - SW - 1] - 2 * lumaBuf[p - 1] - lumaBuf[p + SW - 1] + lumaBuf[p - SW + 1] + 2 * lumaBuf[p + 1] + lumaBuf[p + SW + 1];
+    const gy = -lumaBuf[p - SW - 1] - 2 * lumaBuf[p - SW] - lumaBuf[p - SW + 1] + lumaBuf[p + SW - 1] + 2 * lumaBuf[p + SW] + lumaBuf[p + SW + 1];
+    const g = gx * gx + gy * gy; grad[p] = g; if (g > gmax) gmax = g; }
+  const pk = PRO.peakCol, pr = parseInt(pk.slice(1, 3), 16), pg = parseInt(pk.slice(3, 5), 16), pb = parseInt(pk.slice(5, 7), 16); const gth = gmax * 0.22;
+  for (let p = 0, i = 0; p < SW * SH; p++, i += 4) {
+    const l = lumaBuf[p]; let r = 0, g = 0, b = 0, a = 0;
+    if (t.false) { [r, g, b] = falseCol(l); a = 205; }
+    if (t.zebra && l >= PRO.zebra - 0.005) { const x = p % SW, y = (p / SW) | 0; if (((x + y + phase) >> 2) & 1) { r = g = b = 255; a = 210; } else if (!t.false) a = 0; }
+    if (t.peak && grad[p] > gth && gmax > 0.02) { r = pr; g = pg; b = pb; a = 255; }
+    o[i] = r; o[i + 1] = g; o[i + 2] = b; o[i + 3] = a;
+  }
+  ox.putImageData(ovImg, 0, 0); ov.dataset.used = '1';
+}
+setInterval(scopes, 125);
+// ---- audio meters (dBFS, peak hold, clip) ----
+let actx = null, anL = null, anR = null, aSrc = null; const hold = { L: -60, R: -60, tL: 0, tR: 0 }; let level = -90, clipAt = 0;
+function setupAudio(st) {
+  try {
+    const tr = st && st.getAudioTracks()[0]; if (aSrc) { try { aSrc.disconnect(); } catch {} aSrc = null; }
+    $('#meter').classList.toggle('off', !tr); if (!tr) return;
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    aSrc = actx.createMediaStreamSource(new MediaStream([tr])); const sp = actx.createChannelSplitter(2);
+    anL = actx.createAnalyser(); anR = actx.createAnalyser(); anL.fftSize = anR.fftSize = 1024; aSrc.connect(sp); sp.connect(anL, 0); try { sp.connect(anR, 1); } catch { aSrc.connect(anR); }
+    if ((tr.getSettings().channelCount || 1) < 2) { try { sp.disconnect(anR); } catch {} sp.connect(anR, 0); }
+  } catch (e) { console.warn('meter', e); }
+}
+addEventListener('pointerdown', () => { if (actx && actx.state !== 'running') actx.resume().catch(() => {}); }, { capture: true });
+const fbuf = new Float32Array(1024);
+function readDb(an) { an.getFloatTimeDomainData(fbuf); let pk = 0, ss = 0; for (const v of fbuf) { const a = Math.abs(v); if (a > pk) pk = a; ss += v * v; } return { pk: 20 * Math.log10(pk || 1e-6), rms: 10 * Math.log10(ss / fbuf.length || 1e-9) }; }
+const toPct = db => Math.max(0, Math.min(100, (db + 48) / 48 * 100));
+function meters() {
+  requestAnimationFrame(meters);
+  if (!anL || !actx || actx.state !== 'running' || !S.mic) { $('#mL').style.width = $('#mR').style.width = '0%'; return; }
+  const L = readDb(anL), R = readDb(anR), now = performance.now();
+  for (const [k, m] of [['L', L], ['R', R]]) { if (m.pk > hold[k] || now - hold['t' + k] > 1500) { hold[k] = m.pk; hold['t' + k] = now; } $('#m' + k).style.width = toPct(m.rms + 3) + '%'; $('#p' + k).style.left = `calc(${toPct(hold[k])}% - 2px)`; }
+  level = Math.max(L.pk, R.pk); if (level > -1) clipAt = now; $('#meter').classList.toggle('clip', now - clipAt < 1200);
+}
+requestAnimationFrame(meters);
+// ---- parameter strip + drawer ----
+let drawerFor = '';
+function updateParams() {
+  const t = stream && stream.getVideoTracks()[0]; const st = t && t.getSettings ? t.getSettings() : {};
+  $('#pRes').textContent = `${Math.min(st.width || 0, st.height || 0) || S.res} · ${Math.round(st.frameRate || S.fps)}`;
+  $('#pZoom').textContent = (S.zoom || 1).toFixed(1) + '×';
+  $('#pEv').textContent = (S.exp > 0 ? '+' : S.exp < 0 ? '' : '±') + (S.exp || 0).toFixed(1); $('#prmEv').classList.toggle('auto', S.expMode !== 'manual');
+  $('#pWb').textContent = S.wbMode === 'manual' ? (S.kelvin ? S.kelvin + 'K' : 'LOCK') : 'AWB'; $('#prmWb').classList.toggle('auto', S.wbMode !== 'manual');
+  $('#pFocus').textContent = S.focusMode === 'manual' ? 'MF' : 'AF'; $('#prmFocus').classList.toggle('auto', S.focusMode !== 'manual');
+  $('#pMic').textContent = !S.mic ? 'OFF' : S.ns ? 'VOICE' : 'MIC';
+}
+const chip = (label, on, fn) => { const b = document.createElement('button'); b.className = 'chip' + (on ? ' on' : ''); b.textContent = label; b.onclick = () => { fn(); openDrawer(drawerFor, true); updateParams(); }; return b; };
+function rangeRow(min, max, step, val, fmt, on) { const r = document.createElement('div'); r.className = 'r'; const i = document.createElement('input'); i.type = 'range'; i.min = min; i.max = max; i.step = step; i.value = val; const v = document.createElement('span'); v.className = 'val mono'; v.textContent = fmt(+val); i.oninput = () => { v.textContent = fmt(+i.value); on(+i.value); updateParams(); }; r.append(i, v); return r; }
+function openDrawer(p, keep) {
+  const d = $('#drawer'); if (!keep && drawerFor === p && d.classList.contains('open')) { d.classList.remove('open'); drawerFor = ''; document.querySelectorAll('.prm').forEach(b => b.classList.remove('on')); return; }
+  drawerFor = p; d.innerHTML = ''; document.querySelectorAll('.prm').forEach(b => b.classList.toggle('on', b.dataset.p === p));
+  const h4 = document.createElement('h4'); const x = document.createElement('span'); x.textContent = '✕'; x.onclick = () => openDrawer(p); const row = (...k) => { const r = document.createElement('div'); r.className = 'r'; r.append(...k); return r; };
+  const note = t => { const s = document.createElement('span'); s.className = 'hint'; s.textContent = t; return s; };
+  if (p === 'res') { h4.append('RESOLUTION · FRAME RATE', x); d.append(h4, row(...[720, 1080].map(v => chip(v + 'p', S.res === v, () => { S.res = v; localStorage.setItem('nova.res', v); openCamera(); }))), row(...[24, 25, 30, 60].map(v => chip(v + ' fps', S.fps === v, () => { S.fps = v; localStorage.setItem('nova.fps', v); openCamera(); })))); }
+  if (p === 'zoom') { h4.append('ZOOM', x); d.append(h4); if (S.zcaps) { d.append(rangeRow(S.zcaps.min, S.zcaps.max, 0.1, S.zoom, v => v.toFixed(1) + '×', v => setZoom(v)), row(...[S.zcaps.min < 1 ? S.zcaps.min : null, 1, 2, 3, 5].filter(v => v != null && v <= S.zcaps.max).map(v => chip(v + '×', Math.abs(S.zoom - v) < 0.05, () => zoomAnim(v, 600, 'smooth'))))); } else d.append(row(note('This phone\'s browser has no lens zoom. Nova Studio zooms in the studio instead.'))); }
+  if (p === 'ev') { h4.append('EXPOSURE', x); d.append(h4, row(chip('Auto', S.expMode !== 'manual', () => { S.expMode = 'continuous'; applyAdv({ exposureMode: 'continuous' }); }), chip('Lock', S.expMode === 'manual', () => { S.expMode = 'manual'; applyAdv({ exposureMode: 'manual' }); })));
+    if (S.expCaps) d.append(rangeRow(S.expCaps.min, S.expCaps.max, S.expCaps.step || 0.1, S.exp || 0, v => (v > 0 ? '+' : '') + v.toFixed(1) + ' EV', v => { S.exp = v; applyAdv({ exposureCompensation: v }); })); else d.append(row(note('Exposure compensation is not available on this phone — use Nova Studio\'s brightness.'))); }
+  if (p === 'wb') { h4.append('WHITE BALANCE', x); d.append(h4, row(chip('Auto', S.wbMode !== 'manual', () => { S.wbMode = 'continuous'; S.kelvin = 0; applyAdv({ whiteBalanceMode: 'continuous' }); }), chip('Lock', S.wbMode === 'manual' && !S.kelvin, () => { S.wbMode = 'manual'; S.kelvin = 0; applyAdv({ whiteBalanceMode: 'manual' }); }),
+      ...(S.ctCaps ? [[3200, 'Tungsten'], [4300, 'Indoor'], [5600, 'Daylight'], [6500, 'Cloudy']].filter(([k]) => k >= S.ctCaps.min && k <= S.ctCaps.max).map(([k, n]) => chip(n, S.kelvin === k, () => { S.wbMode = 'manual'; S.kelvin = k; applyAdv({ whiteBalanceMode: 'manual', colorTemperature: k }); })) : [])));
+    if (S.ctCaps) d.append(rangeRow(S.ctCaps.min, S.ctCaps.max, 50, S.kelvin || 5000, v => Math.round(v) + 'K', v => { S.wbMode = 'manual'; S.kelvin = Math.round(v); applyAdv({ whiteBalanceMode: 'manual', colorTemperature: v }); })); }
+  if (p === 'focus') { h4.append('FOCUS', x); d.append(h4, row(chip('Auto (AF)', S.focusMode !== 'manual', () => { S.focusMode = 'continuous'; applyAdv({ focusMode: 'continuous' }); }), chip('Lock (MF)', S.focusMode === 'manual', () => { S.focusMode = 'manual'; applyAdv({ focusMode: 'manual' }); }), chip(PRO.tools.peak ? 'Peaking on' : 'Peaking off', !!PRO.tools.peak, () => document.querySelector('#tools [data-t=peak]').click())), row(note(S.pointOk ? 'Tap the picture to focus there · double-tap for auto focus.' : 'Tap-to-focus is not available on this phone.'))); }
+  if (p === 'mic') { h4.append('AUDIO', x); d.append(h4, row(chip('Mic on', S.mic, () => { S.mic = true; localStorage.setItem('nova.mic', '1'); openCamera().then(() => send({ t: 'renegotiate' })); }), chip('Mic off', !S.mic, () => { S.mic = false; localStorage.setItem('nova.mic', '0'); openCamera().then(() => send({ t: 'renegotiate' })); })),
+      row(chip('Natural (music)', !S.ns, () => setNs(false)), chip('Voice clean (speech)', S.ns, () => setNs(true))), row(note('Sound goes to Nova Studio with the picture. Mixing, EQ and effects are in the studio.'))); }
+  d.classList.add('open');
+}
+function setNs(on) { S.ns = on; localStorage.setItem('nova.ns', on ? '1' : '0'); openCamera().then(() => send({ t: 'renegotiate' })); }
+document.querySelectorAll('.prm').forEach(b => b.onclick = () => openDrawer(b.dataset.p));
+seg('#nsSeg', () => (S.ns ? 1 : 0), v => setNs(v === '1'));
+// ---- tap to focus / expose ----
+(() => { let down = null, lastTap = 0; const v = $('#v');
+  v.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY, t: Date.now() }; });
+  v.addEventListener('pointerup', e => { if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 12 || S.locked) return; const r = videoRect();
+    const fx = (e.clientX - r.x) / r.w, fy = (e.clientY - r.y) / r.h; if (fx < 0 || fx > 1 || fy < 0 || fy > 1) return;
+    if ($('#drawer').classList.contains('open')) { openDrawer(drawerFor); return; }
+    const now = Date.now(); const dbl = now - lastTap < 350; lastTap = now; const q = $('#fsq'); q.style.left = e.clientX + 'px'; q.style.top = e.clientY + 'px'; q.classList.remove('on'); void q.offsetWidth; q.classList.add('on'); setTimeout(() => q.classList.remove('on'), 1200);
+    if (dbl) { S.focusMode = 'continuous'; applyAdv({ focusMode: 'continuous', exposureMode: 'continuous' }); updateParams(); return; }
+    if (S.pointOk) applyAdv({ focusMode: 'single-shot', exposureMode: 'single-shot', pointsOfInterest: [{ x: S.facing === 'user' ? 1 - fx : fx, y: fy }] });
+  }); })();
+// ---- spirit level ----
+let tilt = null;
+function startLevel() { const go = () => addEventListener('deviceorientation', e => { const a = (screen.orientation && screen.orientation.angle) || window.orientation || 0; tilt = a === 90 ? -e.beta : a === -90 || a === 270 ? e.beta : e.gamma; }, { passive: true });
+  if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') DeviceOrientationEvent.requestPermission().then(r => r === 'granted' && go()).catch(() => {}); else go(); }
+function updateLevelVis() { const on = !!PRO.tools.level && tilt != null; $('#level').style.display = $('#levelTxt').style.display = on ? 'block' : 'none'; }
+setInterval(() => { updateLevelVis(); if (!PRO.tools.level || tilt == null) return; const ang = Math.max(-45, Math.min(45, tilt)); $('#level').style.transform = `rotate(${-ang}deg)`; $('#level').classList.toggle('ok', Math.abs(ang) < 1); $('#levelTxt').textContent = Math.abs(ang) < 1 ? 'LEVEL' : ang.toFixed(1) + '°'; }, 80);
+if (PRO.tools.level) startLevel();
+// ---- timecode / on-air timer ----
+let airSince = 0;
+const fmtT = ms => { const s = Math.floor(ms / 1000); return [Math.floor(s / 3600), Math.floor(s / 60) % 60, s % 60].map(n => String(n).padStart(2, '0')).join(':'); };
+setInterval(() => { const d = new Date(); $('#tcTime').textContent = [d.getHours(), d.getMinutes(), d.getSeconds()].map(n => String(n).padStart(2, '0')).join(':');
+  if (S.tally === 'program') airSince = airSince || Date.now(); else airSince = 0;
+  const rec = ISO.on; $('#tc').classList.toggle('rec', rec);
+  $('#tcLabel').textContent = rec ? `REC ${fmtT(Date.now() - ISO.t0)}${ISO.queuedMB > 1 ? ' · ' + ISO.queuedMB.toFixed(0) + ' MB to send' : ''}` : airSince ? 'ON AIR ' + fmtT(Date.now() - airSince).slice(3) : S.tally === 'preview' ? 'PREVIEW' : 'STANDBY'; }, 250);
+// ---- ISO recording: a clean copy recorded on the phone and sent to the studio PC while recording ----
+const ISO = { on: false, rec: null, fid: '', t0: 0, queue: [], sending: false, queuedMB: 0 };
+function isoMime() { for (const m of ['video/mp4;codecs=avc1,mp4a', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']) if (window.MediaRecorder && MediaRecorder.isTypeSupported(m)) return m; return ''; }
+async function isoSend(kind, data) {
+  if (LOCAL) { const u = `/iso/${kind}?k=${encodeURIComponent(K)}&fid=${ISO.fid}` + (kind === 'start' ? `&name=${encodeURIComponent(data.name)}&from=${encodeURIComponent(S.name)}` : '');
+    const r = await fetch(u, { method: 'POST', body: kind === 'chunk' ? data : '' }); if (!r.ok) throw new Error('upload ' + r.status); return; }
+  if (!ws || ws.readyState !== 1) throw new Error('offline');
+  if (kind === 'chunk') { const buf = await data.arrayBuffer(); for (let o = 0; o < buf.byteLength; o += 256 * 1024) { while (ws.bufferedAmount > 4e6) await new Promise(r => setTimeout(r, 40)); ws.send({ t: 'iso-chunk', fid: ISO.fid, d: buf.slice(o, o + 256 * 1024) }); } }
+  else ws.send({ t: 'iso-' + kind, fid: ISO.fid, name: data && data.name, from: S.name });
+}
+async function isoPump() {
+  if (ISO.sending) return; ISO.sending = true;
+  try { while (ISO.queue.length) { const it = ISO.queue[0]; try { await isoSend(it.kind, it.data); ISO.queue.shift(); } catch { await new Promise(r => setTimeout(r, 1500)); } ISO.queuedMB = ISO.queue.reduce((a, q) => a + (q.data && q.data.size || 0), 0) / 1e6; } }
+  finally { ISO.sending = false; }
+}
+function isoStart() {
+  if (ISO.on || !stream) return; const mime = isoMime(); if (!mime) { banner('warn', 'Recording is not supported in this browser'); setTimeout(() => banner(), 2500); return; }
+  ISO.fid = Math.random().toString(36).slice(2, 10); ISO.t0 = Date.now(); ISO.on = true; $('#bRec').classList.add('on');
+  const d = new Date(), ext = /mp4/.test(mime) ? 'mp4' : 'webm'; const name = `${S.name} ${d.toISOString().slice(0, 10)} ${String(d.getHours()).padStart(2, '0')}-${String(d.getMinutes()).padStart(2, '0')}.${ext}`;
+  ISO.queue.push({ kind: 'start', data: { name } });
+  const rec = ISO.rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: S.res >= 1080 ? 7e6 : 4e6, audioBitsPerSecond: 160000 });
+  rec.ondataavailable = e => { if (e.data && e.data.size) { ISO.queue.push({ kind: 'chunk', data: e.data }); isoPump(); } };
+  rec.onstop = () => { ISO.queue.push({ kind: 'end' }); isoPump(); };
+  rec.start(2000); isoPump(); sendStatus(true);
+}
+function isoStop() { if (!ISO.on) return; ISO.on = false; $('#bRec').classList.remove('on'); try { ISO.rec.stop(); } catch {} sendStatus(true); }
+$('#bRec').onclick = () => (ISO.on ? isoStop() : isoStart());
+addEventListener('resize', () => setTimeout(placeOverlays, 50));
+$('#v').addEventListener('loadedmetadata', placeOverlays); $('#v').addEventListener('resize', placeOverlays);
+setInterval(updateParams, 1000);
 </script>
 </body>
 </html>
