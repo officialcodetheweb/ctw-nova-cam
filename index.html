@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b0c10">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nova Cam">
+<link rel="manifest" id="mf">
+<link rel="icon" href="icon.png"><link rel="apple-touch-icon" href="icon.png">
+<title>Nova Cam</title>
+<style>
+  :root { --a: #ff7a18; --b: #ffb347; --bg: #0b0c10; --panel: rgba(16,18,24,.78); --line: rgba(255,255,255,.12); --ok: #22c55e; --warn: #f59e0b; --err: #ef4444; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: #000; color: #fff; font: 14px/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden; user-select: none; touch-action: manipulation; }
+  #v { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+  #v.mirror { transform: scaleX(-1); }
+  #frame { position: fixed; inset: 0; pointer-events: none; border: 0 solid transparent; transition: border-color .2s, border-width .2s; z-index: 2; }
+  #frame.program { border: 6px solid var(--err); box-shadow: inset 0 0 40px rgba(239,68,68,.45); }
+  #frame.preview { border: 6px solid var(--ok); }
+  .bar { position: fixed; left: 0; right: 0; display: flex; align-items: center; gap: 10px; padding: max(10px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) 10px max(14px, env(safe-area-inset-left)); z-index: 5; }
+  .top { top: 0; background: linear-gradient(180deg, rgba(0,0,0,.65), transparent); }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font-weight: 800; font-size: 12px; backdrop-filter: blur(8px); }
+  .pill i { width: 8px; height: 8px; border-radius: 50%; background: #6b7280; }
+  .pill.program { background: var(--err); border-color: transparent; } .pill.program i { background: #fff; animation: blink 1s infinite; }
+  .pill.preview { background: var(--ok); border-color: transparent; color: #04140a; } .pill.preview i { background: #04140a; }
+  @keyframes blink { 50% { opacity: .2; } }
+  .name { font-weight: 900; font-size: 15px; text-shadow: 0 1px 3px #000; max-width: 34vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .grow { flex: 1; }
+  .sig { display: inline-flex; align-items: flex-end; gap: 2px; height: 16px; }
+  .sig b { width: 4px; border-radius: 2px; background: rgba(255,255,255,.25); }
+  .sig b:nth-child(1) { height: 25%; } .sig b:nth-child(2) { height: 50%; } .sig b:nth-child(3) { height: 75%; } .sig b:nth-child(4) { height: 100%; }
+  .sig.q1 b:nth-child(-n+1), .sig.q2 b:nth-child(-n+2), .sig.q3 b:nth-child(-n+3), .sig.q4 b:nth-child(-n+4) { background: currentColor; }
+  .q4, .q3 { color: var(--ok); } .q2 { color: var(--warn); } .q1, .q0 { color: var(--err); }
+  #sigText { font-size: 12px; font-weight: 700; }
+  .side { position: fixed; right: max(12px, env(safe-area-inset-right)); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 5; }
+  .rb { width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: #fff; display: grid; place-items: center; backdrop-filter: blur(8px); font-size: 20px; transition: transform .1s, background .2s; }
+  .rb:active { transform: scale(.92); } .rb.on { background: linear-gradient(135deg, var(--a), var(--b)); border-color: transparent; }
+  .rb svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .zoom { position: fixed; left: max(12px, env(safe-area-inset-left)); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 5; }
+  .ztrack { position: relative; width: 46px; height: 46vh; max-height: 260px; border-radius: 23px; background: var(--panel); border: 1px solid var(--line); touch-action: none; backdrop-filter: blur(8px); }
+  .zfill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 23px; background: linear-gradient(0deg, rgba(255,122,24,.15), rgba(255,179,71,.55)); }
+  .zknob { position: absolute; left: 6px; right: 6px; height: 34px; border-radius: 17px; background: #fff; color: #111; font-weight: 900; font-size: 12px; display: grid; place-items: center; box-shadow: 0 2px 10px rgba(0,0,0,.5); }
+  .zp { display: flex; flex-direction: column; gap: 6px; }
+  .zp button { width: 46px; height: 30px; border-radius: 15px; border: 1px solid var(--line); background: var(--panel); color: #fff; font-weight: 800; font-size: 12px; }
+  .bottom { bottom: 0; justify-content: center; background: linear-gradient(0deg, rgba(0,0,0,.6), transparent); padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .hint { font-size: 12px; color: rgba(255,255,255,.75); text-align: center; }
+  #banner { position: fixed; left: 50%; top: 64px; transform: translateX(-50%); z-index: 8; display: none; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 14px; font-weight: 800; box-shadow: 0 10px 30px rgba(0,0,0,.5); max-width: 92vw; text-align: center; }
+  #banner.err { display: flex; background: var(--err); } #banner.warn { display: flex; background: var(--warn); color: #1a1004; } #banner.ok { display: flex; background: var(--ok); color: #04140a; }
+  .sheet { position: fixed; inset: auto 0 0 0; z-index: 9; background: #13151b; border-top: 1px solid var(--line); border-radius: 20px 20px 0 0; padding: 16px 18px max(18px, env(safe-area-inset-bottom)); transform: translateY(105%); transition: transform .25s; max-height: 86vh; overflow: auto; }
+  .sheet.open { transform: none; }
+  .sheet h3 { margin: 0 0 10px; font-size: 16px; }
+  .row { display: flex; align-items: center; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+  .row label { min-width: 110px; color: #aab; font-size: 13px; font-weight: 700; }
+  .seg { display: inline-flex; background: #0b0c10; border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+  .seg button { border: 0; background: none; color: #ccd; padding: 7px 12px; border-radius: 8px; font-weight: 700; }
+  .seg button.on { background: linear-gradient(135deg, var(--a), var(--b)); color: #fff; }
+  input[type=text] { background: #0b0c10; border: 1px solid var(--line); border-radius: 10px; color: #fff; padding: 9px 12px; font-size: 14px; flex: 1; min-width: 160px; }
+  input[type=range] { flex: 1; accent-color: var(--a); }
+  .btn { border: 0; border-radius: 10px; padding: 10px 16px; font-weight: 800; background: linear-gradient(135deg, var(--a), var(--b)); color: #fff; }
+  .btn.ghost { background: #232631; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stats div { background: #0b0c10; border: 1px solid var(--line); border-radius: 10px; padding: 8px; } .stats small { display: block; color: #889; font-size: 11px; } .stats b { font-size: 14px; }
+  #start { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 30px; text-align: center; background: radial-gradient(600px 400px at 50% 30%, rgba(255,122,24,.25), transparent), #0b0c10; }
+  #start img { width: 84px; height: 84px; border-radius: 20px; }
+  #start h1 { margin: 0; font-size: 24px; } #start p { margin: 0; color: #aab; max-width: 420px; }
+  #lockOverlay { position: fixed; inset: 0; z-index: 7; display: none; } #lockOverlay.on { display: block; }
+  .rot { display: none; } @media (orientation: portrait) { .rot { display: block; } }
+</style>
+</head>
+<body>
+<video id="v" playsinline autoplay muted></video>
+<div id="frame"></div>
+<div class="bar top">
+  <span class="pill" id="tally"><i></i><span id="tallyText">CONNECTING</span></span>
+  <span class="name" id="camName">Nova Cam</span>
+  <span class="grow"></span>
+  <span class="sig q0" id="sig"><b></b><b></b><b></b><b></b></span><span id="sigText">—</span>
+  <span class="pill" id="batt" style="display:none"></span>
+</div>
+<div id="banner"></div>
+<div class="zoom" id="zoomBox">
+  <div class="zp" id="zp"></div>
+  <div class="ztrack" id="ztrack"><div class="zfill" id="zfill"></div><div class="zknob" id="zknob">1.0×</div></div>
+</div>
+<div class="side">
+  <button class="rb" id="bTorch" title="Torch"><svg viewBox="0 0 24 24"><path d="M9 2h6l-1 6H10z"/><path d="M10 8h4v14h-4z"/></svg></button>
+  <button class="rb" id="bFlip" title="Front / back"><svg viewBox="0 0 24 24"><path d="M3 7h3l2-3h8l2 3h3v12H3z"/><path d="M9 13a3 3 0 0 0 5.6 1.5M15 11a3 3 0 0 0-5.6-1.5"/></svg></button>
+  <button class="rb" id="bLock" title="Lock the screen buttons"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></button>
+  <button class="rb" id="bSet" title="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg></button>
+</div>
+<div class="bar bottom"><span class="hint" id="hint"><span class="rot">Turn your phone sideways for a wide picture • </span>Nova Studio controls this camera</span></div>
+<div id="lockOverlay"></div>
+
+<div class="sheet" id="sheet">
+  <h3>Camera settings</h3>
+  <div class="row"><label>Name</label><input type="text" id="nameIn" maxlength="40" placeholder="e.g. Pulpit phone"></div>
+  <div class="row"><label>Quality</label><div class="seg" id="resSeg"><button data-v="720">720p</button><button data-v="1080">1080p</button></div></div>
+  <div class="row"><label>Frame rate</label><div class="seg" id="fpsSeg"><button data-v="24">24</button><button data-v="30">30</button><button data-v="60">60</button></div></div>
+  <div class="row"><label>Microphone</label><div class="seg" id="micSeg"><button data-v="1">Send sound</button><button data-v="0">Off</button></div></div>
+  <div class="row" id="focusRow"><label>Focus</label><div class="seg" id="focusSeg"><button data-v="continuous">Auto</button><button data-v="manual">Locked</button></div></div>
+  <div class="row" id="expRow"><label>Brightness</label><input type="range" id="expIn" min="-2" max="2" step="0.1" value="0"></div>
+  <div class="stats" id="stats"></div>
+  <p class="hint" style="text-align:left;margin-top:14px"><b>Put Nova Cam on your home screen:</b> Android Chrome — ⋮ menu → <i>Add to Home screen</i>. iPhone Safari — Share → <i>Add to Home Screen</i>. Next time just tap the icon: it connects by itself.</p>
+  <div class="row"><button class="btn" id="closeSheet">Done</button></div>
+</div>
+
+<div id="start">
+  <img src="icon.png" alt="">
+  <h1>Nova Cam</h1>
+  <p id="startText">Use this phone as a camera for Nova Studio. The picture and sound go to the studio over your WiFi.</p>
+  <button class="btn" id="go">Start camera</button>
+  <p class="hint" id="startErr" style="color:#fca5a5"></p>
+</div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const qs = new URLSearchParams(location.search);
+if (qs.get('k')) localStorage.setItem('nova.k', qs.get('k'));
+if (qs.get('p')) localStorage.setItem('nova.p', qs.get('p'));
+const K = qs.get('k') || localStorage.getItem('nova.k') || '';
+if (qs.get('s') != null) localStorage.setItem('nova.s', qs.get('s'));
+const SRV = qs.get('s') ?? localStorage.getItem('nova.s') ?? '';
+const peerOpts = s => { if (!s) return { debug: 0 }; try { const u = new URL(/^https?:/.test(s) ? s : 'https://' + s); return { debug: 0, host: u.hostname, port: +u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname || '/', secure: u.protocol === 'https:' }; } catch { return { debug: 0 }; } };
+// LOCAL: page served by the studio PC (wss link).  CLOUD: page served from a normal https website — PC found through PeerJS, then a direct link over the WiFi.
+const LOCAL = location.pathname === '/cam' && !qs.get('p');
+const P = LOCAL ? '' : (qs.get('p') || localStorage.getItem('nova.p') || '');
+if (LOCAL) $('#mf').href = '/manifest.webmanifest?k=' + encodeURIComponent(K); else $('#mf').remove();
+let ID = localStorage.getItem('nova.id'); if (!ID) { ID = 'ph' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); localStorage.setItem('nova.id', ID); }
+const guessName = () => { const ua = navigator.userAgent; const m = /Android [\d.]+; ([^;)]+)/.exec(ua); return m ? m[1].replace(/Build.*/, '').trim().slice(0, 28) : /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : 'Phone'; };
+const S = { name: localStorage.getItem('nova.name') || guessName(), res: +(localStorage.getItem('nova.res') || 1080), fps: +(localStorage.getItem('nova.fps') || 30), mic: localStorage.getItem('nova.mic') !== '0',
+  facing: localStorage.getItem('nova.facing') || 'environment', torch: false, zoom: 1, zcaps: null, mode: 'rtc', tally: '', pcName: '', locked: false };
+let SID = '', stream = null, ws = null, pc = null, jpegTimer = null, wakeLock = null, retry = 0, zoomSpeed = 0, zoomTimer = null;
+const rtts = []; let lastStatus = {};
+
+// ---------- camera ----------
+async function openCamera() {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  const h = S.res, w = Math.round(h * 16 / 9);
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: S.facing, width: { ideal: w }, height: { ideal: h }, frameRate: { ideal: S.fps } },
+    audio: S.mic ? { echoCancellation: false, noiseSuppression: false, autoGainControl: true } : false });
+  const v = $('#v'); v.srcObject = stream; v.classList.toggle('mirror', S.facing === 'user'); await v.play().catch(() => {});
+  const track = stream.getVideoTracks()[0];
+  const caps = track.getCapabilities ? track.getCapabilities() : {};
+  S.zcaps = caps.zoom ? { min: caps.zoom.min, max: Math.min(caps.zoom.max, 30), step: caps.zoom.step || 0.1 } : null;
+  S.torchOk = !!caps.torch; S.focusOk = caps.focusMode && caps.focusMode.length > 1; S.expCaps = caps.exposureCompensation || null;
+  $('#bTorch').style.display = S.torchOk ? '' : 'none'; $('#focusRow').style.display = S.focusOk ? '' : 'none'; $('#expRow').style.display = S.expCaps ? '' : 'none';
+  if (S.expCaps) { $('#expIn').min = S.expCaps.min; $('#expIn').max = S.expCaps.max; $('#expIn').step = S.expCaps.step || 0.1; }
+  S.zoom = (track.getSettings && track.getSettings().zoom) || 1; drawZoom(); drawZoomPresets();
+  // replace the tracks in a running WebRTC link (switching front / back or quality)
+  if (pc) for (const s of pc.getSenders()) { const nt = stream.getTracks().find(t => s.track && t.kind === s.track.kind); if (nt) await s.replaceTrack(nt).catch(() => {}); }
+  sendStatus(true);
+}
+async function setZoom(z) {
+  const t = stream && stream.getVideoTracks()[0]; if (!t) return;
+  if (S.zcaps) { z = Math.max(S.zcaps.min, Math.min(S.zcaps.max, z)); try { await t.applyConstraints({ advanced: [{ zoom: z }] }); S.zoom = z; } catch {} }
+  drawZoom(); sendStatus();
+}
+function drawZoom() {
+  const z = S.zcaps; $('#zoomBox').style.display = z ? '' : 'none'; if (!z) return;
+  const k = (S.zoom - z.min) / Math.max(0.01, z.max - z.min); const tr = $('#ztrack').clientHeight;
+  $('#zfill').style.height = (k * 100) + '%'; $('#zknob').style.bottom = (k * (tr - 46) + 6) + 'px'; $('#zknob').textContent = S.zoom.toFixed(1) + '×';
+}
+function drawZoomPresets() {
+  const box = $('#zp'); box.innerHTML = ''; if (!S.zcaps) return;
+  for (const z of [S.zcaps.min < 1 ? S.zcaps.min : null, 1, 2, 5].filter(v => v != null && v <= S.zcaps.max)) {
+    const b = document.createElement('button'); b.textContent = (Math.round(z * 10) / 10) + '×'; b.onclick = () => setZoom(z); box.append(b); }
+}
+(() => { const tr = $('#ztrack'); let on = false;
+  const set = e => { const r = tr.getBoundingClientRect(); const k = 1 - Math.max(0, Math.min(1, (e.clientY - r.top) / r.height)); const z = S.zcaps; if (z) setZoom(z.min + k * (z.max - z.min)); };
+  tr.addEventListener('pointerdown', e => { on = true; tr.setPointerCapture(e.pointerId); set(e); });
+  tr.addEventListener('pointermove', e => { if (on) set(e); }); tr.addEventListener('pointerup', () => { on = false; }); })();
+function zoomRamp(speed) {             // continuous zoom from the studio's PTZ joystick
+  zoomSpeed = speed; clearInterval(zoomTimer); if (!speed || !S.zcaps) return;
+  zoomTimer = setInterval(() => setZoom(S.zoom * Math.pow(S.zcaps.max / Math.max(0.1, S.zcaps.min), zoomSpeed * 0.02)), 50);
+}
+
+// ---------- link to Nova Studio ----------
+// `ws` is the link to the studio: a WebSocket (LOCAL) or a PeerJS data connection wrapped to look like one (CLOUD)
+function linkUp() { retry = 0; banner('ok', 'Connected to Nova Studio'); setTimeout(() => banner(), 1800); setTally(S.tally || 'standby'); sendStatus(true); }
+function linkDown(denied, why) {
+  stopRtc(); stopJpeg(); setTally('off'); quality(0);
+  if (denied) { banner('err', why || 'Not allowed — scan the QR code in Nova Studio again'); return; }
+  retry++; banner('err', `Lost the studio connection — reconnecting… ${retry > 2 ? (why || '(check the WiFi)') : ''}`);
+  if (navigator.vibrate) navigator.vibrate([250, 120, 250]);
+  setTimeout(connect, Math.min(6000, 1000 + retry * 800));
+}
+function connect() { if (LOCAL) connectLocal(); else connectCloud(); }
+function connectLocal() {
+  const u = `wss://${location.host}/ws/cam?k=${encodeURIComponent(K)}&id=${ID}&name=${encodeURIComponent(S.name)}`;
+  ws = new WebSocket(u); ws.binaryType = 'arraybuffer';
+  ws.onopen = linkUp;
+  ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch { return; } onMsg(m); };
+  ws.onclose = ev => linkDown(ev.code === 4003);
+  ws.onerror = () => {};
+}
+let peer = null;
+function loadPeerJs() { return window.Peer ? Promise.resolve() : new Promise((ok, bad) => { const sc = document.createElement('script'); sc.src = 'peerjs.min.js'; sc.onload = ok; sc.onerror = () => bad(new Error('peerjs')); document.head.append(sc); }); }
+async function connectCloud() {
+  try { await loadPeerJs(); } catch { linkDown(false, '(no internet?)'); return; }
+  const dead = { readyState: 3, bufferedAmount: 0, send() {} }; ws = dead;
+  const go = () => {
+    const conn = peer.connect(P, { reliable: true, serialization: 'json', metadata: { k: K, id: ID, name: S.name, kind: 'cam' } });
+    let opened = false;
+    const w = { readyState: 0, get bufferedAmount() { return conn.dataChannel ? conn.dataChannel.bufferedAmount : 0; }, send: d => conn.send(d), conn };
+    ws = w;
+    const to = setTimeout(() => { if (!opened) { try { conn.close(); } catch {} } }, 12000);
+    conn.on('open', () => { opened = true; clearTimeout(to); w.readyState = 1; linkUp(); });
+    conn.on('data', d => { if (d && d.t === 'denied') { w.denied = d.reason || 'denied'; return; } onMsg(d); });
+    conn.on('close', () => { clearTimeout(to); if (ws === w) { w.readyState = 3; linkDown(!!w.denied, w.denied ? 'Not allowed — scan the QR code in Nova Studio again' : opened ? '' : 'Nova Studio not found — is it open, and on the internet?'); } });
+    conn.on('error', () => {});
+  };
+  if (peer && !peer.destroyed && peer.open) return go();
+  if (peer) { try { peer.destroy(); } catch {} }
+  peer = new Peer(peerOpts(SRV));
+  peer.on('open', go);
+  peer.on('error', e => { if (e.type === 'peer-unavailable') { if (ws && ws.conn) { try { ws.conn.close(); } catch {} } else linkDown(false, 'Nova Studio not found — is it open?'); }
+    else if (['network', 'server-error', 'socket-error', 'socket-closed'].includes(e.type)) { try { peer.destroy(); } catch {} peer = null; if (!ws || ws.readyState !== 1) linkDown(false, '(no internet?)'); } });
+  peer.on('disconnected', () => { try { peer.reconnect(); } catch {} });
+}
+const send = m => { if (ws && ws.readyState === 1) ws.send(LOCAL ? JSON.stringify(m) : m); };
+async function onMsg(m) {
+  switch (m.t) {
+    case 'offer': SID = m.sid || ''; await startRtc(m.sdp); break;
+    case 'ice': if (pc && m.c && (!m.sid || m.sid === SID)) pc.addIceCandidate(m.c).catch(() => {}); break;
+    case 'mode': if (m.mode === 'jpeg') { stopRtc(); startJpeg(); } else stopJpeg(); S.mode = m.mode; break;
+    case 'pong': { const r = Date.now() - m.ts; rtts.push(r); if (rtts.length > 10) rtts.shift(); break; }
+    case 'tally': setTally(m.state); break;
+    case 'name': if (m.name) { S.name = m.name; localStorage.setItem('nova.name', m.name); $('#camName').textContent = m.name; $('#nameIn').value = m.name; } S.pcName = m.pc || S.pcName; break;
+    case 'zoomTo': setZoom(+m.value); break;
+    case 'zoomSpeed': zoomRamp(+m.speed || 0); break;
+    case 'torch': setTorch(!!m.on); break;
+    case 'facing': S.facing = m.facing === 'user' ? 'user' : 'environment'; localStorage.setItem('nova.facing', S.facing); openCamera(); break;
+    case 'res': S.res = +m.value || 1080; localStorage.setItem('nova.res', S.res); openCamera(); break;
+    case 'fps': S.fps = +m.value || 30; localStorage.setItem('nova.fps', S.fps); openCamera(); break;
+    case 'focus': applyAdv({ focusMode: m.mode }); break;
+    case 'exposure': applyAdv({ exposureCompensation: +m.value }); break;
+    case 'identify': banner('ok', 'This is ' + S.name); if (navigator.vibrate) navigator.vibrate(300); setTimeout(() => banner(), 2000); break;
+  }
+}
+async function startRtc(sdp) {
+  stopRtc(); stopJpeg();
+  pc = new RTCPeerConnection({ iceServers: [] });
+  const mySid = SID; pc.onicecandidate = e => { if (e.candidate) send({ t: 'ice', c: e.candidate, sid: mySid }); };
+  pc.onconnectionstatechange = () => { if (pc && ['failed'].includes(pc.connectionState)) send({ t: 'rtc-failed', sid: SID }); };
+  for (const t of stream.getTracks()) pc.addTrack(t, stream);
+  await pc.setRemoteDescription({ type: 'offer', sdp });
+  const ans = await pc.createAnswer(); await pc.setLocalDescription(ans);
+  send({ t: 'answer', sdp: pc.localDescription.sdp, sid: SID });
+  const vs = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+  if (vs && vs.getParameters) { try { const p = vs.getParameters(); p.encodings = p.encodings && p.encodings.length ? p.encodings : [{}]; p.encodings[0].maxBitrate = S.res >= 1080 ? 8e6 : 4e6; p.degradationPreference = 'maintain-framerate'; await vs.setParameters(p); } catch {} }
+}
+function stopRtc() { if (pc) { try { pc.close(); } catch {} pc = null; } }
+// JPEG fallback (when WebRTC cannot connect on this network)
+const cv = document.createElement('canvas');
+function startJpeg() {
+  stopJpeg(); const v = $('#v');
+  jpegTimer = setInterval(() => {
+    if (!ws || ws.readyState !== 1 || ws.bufferedAmount > 1.5e6 || !v.videoWidth) return;
+    const w = Math.min(1280, v.videoWidth), h = Math.round(v.videoHeight * w / v.videoWidth);
+    if (cv.width !== w) { cv.width = w; cv.height = h; } cv.getContext('2d').drawImage(v, 0, 0, w, h);
+    cv.toBlob(b => b && (LOCAL ? b.arrayBuffer().then(buf => ws && ws.readyState === 1 && ws.send(buf)) : new Promise(r => { const fr = new FileReader(); fr.onload = () => { if (ws && ws.readyState === 1) ws.send({ t: 'jpeg', d: fr.result.split(',')[1] }); r(); }; fr.readAsDataURL(b); })), 'image/jpeg', LOCAL ? 0.72 : 0.6);
+  }, 1000 / Math.min(S.fps, 25));
+}
+function stopJpeg() { clearInterval(jpegTimer); jpegTimer = null; }
+async function applyAdv(c) { const t = stream && stream.getVideoTracks()[0]; if (!t) return; try { await t.applyConstraints({ advanced: [c] }); } catch {} sendStatus(); }
+async function setTorch(on) { S.torch = on; $('#bTorch').classList.toggle('on', on); await applyAdv({ torch: on }); }
+
+// ---------- health: how good is the WiFi link ----------
+let lossPct = 0, rtcRtt = null;
+async function measure() {
+  send({ t: 'ping', ts: Date.now() });
+  if (pc) { try { const st = await pc.getStats(); st.forEach(r => { if (r.type === 'remote-inbound-rtp' && r.kind === 'video') { rtcRtt = r.roundTripTime != null ? r.roundTripTime * 1000 : rtcRtt; lossPct = r.fractionLost != null ? r.fractionLost * 100 : lossPct; } }); } catch {} }
+  const avg = rtts.length ? rtts.reduce((a, b) => a + b, 0) / rtts.length : null;
+  const jitter = rtts.length > 2 ? Math.sqrt(rtts.reduce((a, b) => a + (b - avg) * (b - avg), 0) / rtts.length) : 0;
+  const rtt = rtcRtt != null ? rtcRtt : avg;
+  let q = !ws || ws.readyState !== 1 ? 0 : rtt == null ? 3 : rtt < 35 && jitter < 15 && lossPct < 1 ? 4 : rtt < 80 && lossPct < 3 ? 3 : rtt < 180 && lossPct < 8 ? 2 : 1;
+  const con = navigator.connection; if (con && con.downlink && con.downlink < 2 && q > 2) q = 2;
+  quality(q, rtt, jitter);
+  sendStatus();
+}
+function quality(q, rtt, jitter) {
+  S.q = q; S.rtt = rtt; S.jitter = jitter;
+  $('#sig').className = 'sig q' + q;
+  const txt = ['Disconnected', 'Weak — move closer to the WiFi', 'Fair — getting far from the WiFi', 'Good', 'Excellent'][q];
+  $('#sigText').textContent = txt; $('#sigText').className = 'q' + q;
+  if (q === 1 && ws && ws.readyState === 1) { banner('warn', 'WiFi is weak here — move closer to the router'); if (navigator.vibrate && !S.warned) { navigator.vibrate(150); S.warned = true; } }
+  else if (q >= 3 && $('#banner').classList.contains('warn')) { banner(); S.warned = false; }
+  renderStats();
+}
+let battery = null; if (navigator.getBattery) navigator.getBattery().then(b => { battery = b; const up = () => { $('#batt').style.display = ''; $('#batt').textContent = (b.charging ? '⚡ ' : '') + Math.round(b.level * 100) + '%'; sendStatus(); }; b.onlevelchange = up; b.onchargingchange = up; up(); });
+function sendStatus(force) {
+  const t = stream && stream.getVideoTracks()[0]; const st = t && t.getSettings ? t.getSettings() : {};
+  const s = { t: 'status', name: S.name, q: S.q, rtt: S.rtt != null ? Math.round(S.rtt) : null, jitter: S.jitter != null ? Math.round(S.jitter) : null, loss: Math.round(lossPct * 10) / 10,
+    battery: battery ? Math.round(battery.level * 100) : null, charging: battery ? battery.charging : null, zoom: Math.round(S.zoom * 100) / 100, zcaps: S.zcaps, torch: S.torch, torchOk: !!S.torchOk,
+    facing: S.facing, w: st.width, h: st.height, fps: st.frameRate ? Math.round(st.frameRate) : S.fps, mode: S.mode, net: navigator.connection ? navigator.connection.effectiveType : null };
+  const key = JSON.stringify(s); if (!force && key === lastStatus.key && Date.now() - lastStatus.at < 5000) return; lastStatus = { key, at: Date.now() }; send(s);
+}
+function renderStats() {
+  const t = stream && stream.getVideoTracks()[0]; const st = t && t.getSettings ? t.getSettings() : {};
+  $('#stats').innerHTML = [['Delay', S.rtt != null ? Math.round(S.rtt) + ' ms' : '—'], ['Jitter', S.jitter != null ? Math.round(S.jitter) + ' ms' : '—'], ['Lost', lossPct.toFixed(1) + ' %'],
+    ['Picture', st.width ? `${st.width}×${st.height}` : '—'], ['Frames', st.frameRate ? Math.round(st.frameRate) + ' fps' : '—'], ['Link', S.mode === 'jpeg' ? 'Compatible' : 'Direct (WebRTC)']]
+    .map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join('');
+}
+function setTally(s) {
+  S.tally = s; const map = { program: ['program', 'LIVE'], preview: ['preview', 'PREVIEW'], standby: ['', 'READY'], off: ['', 'OFFLINE'] }; const [cls, txt] = map[s] || map.standby;
+  $('#tally').className = 'pill ' + cls; $('#tallyText').textContent = txt; $('#frame').className = cls;
+}
+function banner(kind, text) { const b = $('#banner'); b.className = kind || ''; b.textContent = text || ''; }
+
+// ---------- buttons ----------
+$('#bTorch').onclick = () => setTorch(!S.torch);
+$('#bFlip').onclick = () => { S.facing = S.facing === 'user' ? 'environment' : 'user'; localStorage.setItem('nova.facing', S.facing); openCamera(); };
+$('#bLock').onclick = () => { S.locked = !S.locked; $('#bLock').classList.toggle('on', S.locked); $('#lockOverlay').classList.toggle('on', S.locked); document.querySelectorAll('.zoom, #bTorch, #bFlip, #bSet').forEach(e => { e.style.opacity = S.locked ? .25 : 1; e.style.pointerEvents = S.locked ? 'none' : ''; }); };
+$('#bSet').onclick = () => { renderStats(); $('#sheet').classList.add('open'); };
+$('#closeSheet').onclick = () => $('#sheet').classList.remove('open');
+$('#nameIn').value = S.name; $('#camName').textContent = S.name;
+$('#nameIn').onchange = e => { S.name = e.target.value.trim() || guessName(); localStorage.setItem('nova.name', S.name); $('#camName').textContent = S.name; send({ t: 'rename', name: S.name }); };
+const seg = (id, key, cb) => { const el = $(id); const draw = () => el.querySelectorAll('button').forEach(b => b.classList.toggle('on', String(b.dataset.v) === String(key()))); el.querySelectorAll('button').forEach(b => b.onclick = () => { cb(b.dataset.v); draw(); }); draw(); };
+seg('#resSeg', () => S.res, v => { S.res = +v; localStorage.setItem('nova.res', v); openCamera(); });
+seg('#fpsSeg', () => S.fps, v => { S.fps = +v; localStorage.setItem('nova.fps', v); openCamera(); });
+seg('#micSeg', () => (S.mic ? 1 : 0), v => { S.mic = v === '1'; localStorage.setItem('nova.mic', v); openCamera().then(() => send({ t: 'renegotiate' })); });
+seg('#focusSeg', () => S.focusMode || 'continuous', v => { S.focusMode = v; applyAdv({ focusMode: v }); });
+$('#expIn').oninput = e => applyAdv({ exposureCompensation: +e.target.value });
+document.addEventListener('visibilitychange', async () => { if (document.visibilityState === 'visible') { keepAwake(); if (stream && stream.getVideoTracks()[0].readyState === 'ended') openCamera(); } });
+async function keepAwake() { try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch {} }
+window.addEventListener('resize', drawZoom);
+
+// ---------- start ----------
+async function begin() {
+  $('#startErr').textContent = '';
+  if (!window.isSecureContext || !navigator.mediaDevices) { $('#startErr').textContent = 'Open this page from the QR code in Nova Studio.'; return; }
+  if (!K || (!LOCAL && !P)) { $('#startErr').textContent = 'Scan the QR code in Nova Studio (Phones tab) to pair this phone.'; return; }
+  try { await openCamera(); } catch (e) { $('#startErr').textContent = 'Camera not allowed: ' + (e.message || e.name) + ' — allow camera and microphone for this site.'; return; }
+  $('#start').style.display = 'none'; keepAwake();
+  try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {}); } catch {}
+  connect(); setInterval(measure, 2000);
+}
+$('#go').onclick = begin;
+if (localStorage.getItem('nova.started') && K) { $('#startText').textContent = 'Connecting to Nova Studio…'; begin(); }   // opened from the home-screen icon: start by itself
+$('#go').addEventListener('click', () => localStorage.setItem('nova.started', '1'));
+</script>
+</body>
+</html>

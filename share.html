@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0c10">
+<link rel="icon" href="icon.png"><link rel="apple-touch-icon" href="icon.png">
+<title>Send to Nova Studio</title>
+<style>
+  :root { --a: #ff7a18; --b: #ffb347; --line: rgba(255,255,255,.12); }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: radial-gradient(600px 400px at 50% 0%, rgba(255,122,24,.22), transparent), #0b0c10; color: #fff; font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding: 22px 18px max(22px, env(safe-area-inset-bottom)); }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; } header img { width: 46px; height: 46px; border-radius: 12px; }
+  h1 { font-size: 20px; margin: 0; } p { color: #aab; margin: 4px 0 0; font-size: 13px; }
+  .drop { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 28px 16px; border: 2px dashed rgba(255,122,24,.6); border-radius: 18px; background: rgba(255,255,255,.03); text-align: center; }
+  .btn { border: 0; border-radius: 12px; padding: 13px 20px; font-weight: 800; font-size: 15px; background: linear-gradient(135deg, var(--a), var(--b)); color: #fff; }
+  input[type=text] { width: 100%; background: #13151b; border: 1px solid var(--line); border-radius: 12px; color: #fff; padding: 12px; font-size: 15px; margin: 14px 0; }
+  .list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+  .item { background: #13151b; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+  .item b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; }
+  .item small { color: #889; }
+  .prog { height: 6px; border-radius: 3px; background: #23262f; margin-top: 7px; overflow: hidden; } .prog i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--a), var(--b)); transition: width .2s; }
+  .ok .prog i { background: #22c55e; } .err .prog i { background: #ef4444; }
+</style>
+</head>
+<body>
+<header><img src="icon.png" alt=""><div><h1>Send to Nova Studio</h1><p>Photos, videos, slides or any file go straight to the studio PC.</p></div></header>
+<input type="text" id="from" placeholder="Your name (shown on the PC)">
+<div class="drop">
+  <div style="font-size:40px">⬆</div>
+  <button class="btn" id="pick">Choose photos, videos or files</button>
+  <p>They arrive in the <b>Received</b> folder and Nova Studio offers to add them as inputs.</p>
+  <input type="file" id="files" multiple hidden>
+</div>
+<div class="list" id="list"></div>
+<script>
+'use strict';
+const qs = new URLSearchParams(location.search);
+if (qs.get('k')) localStorage.setItem('nova.k', qs.get('k'));
+if (qs.get('p')) localStorage.setItem('nova.p', qs.get('p'));
+const K = qs.get('k') || localStorage.getItem('nova.k') || '';
+if (qs.get('s') != null) localStorage.setItem('nova.s', qs.get('s'));
+const SRV = qs.get('s') ?? localStorage.getItem('nova.s') ?? '';
+const peerOpts = s => { if (!s) return { debug: 0 }; try { const u = new URL(/^https?:/.test(s) ? s : 'https://' + s); return { debug: 0, host: u.hostname, port: +u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname || '/', secure: u.protocol === 'https:' }; } catch { return { debug: 0 }; } };
+const LOCAL = location.pathname === '/share' && !qs.get('p');            // served by the studio PC itself
+const P = LOCAL ? '' : (qs.get('p') || localStorage.getItem('nova.p') || '');
+const from = document.getElementById('from'); from.value = localStorage.getItem('nova.from') || localStorage.getItem('nova.name') || '';
+from.onchange = () => localStorage.setItem('nova.from', from.value.trim());
+document.getElementById('pick').onclick = () => document.getElementById('files').click();
+const fmt = b => b > 1e9 ? (b / 1e9).toFixed(2) + ' GB' : b > 1e6 ? (b / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1e3)) + ' KB';
+document.getElementById('files').onchange = async e => { for (const f of e.target.files) await upload(f); e.target.value = ''; };
+function row(f) {
+  const el = document.createElement('div'); el.className = 'item'; el.innerHTML = `<b></b><small>${fmt(f.size)} — sending…</small><div class="prog"><i></i></div>`; el.querySelector('b').textContent = f.name;
+  document.getElementById('list').prepend(el);
+  return { prog: k => { el.querySelector('i').style.width = (k * 100) + '%'; }, done: (ok, msg) => { el.classList.add(ok ? 'ok' : 'err'); el.querySelector('i').style.width = '100%'; el.querySelector('small').textContent = ok ? `${fmt(f.size)} — sent ✓` : msg; } };
+}
+function upload(f) { return LOCAL ? uploadLocal(f) : uploadCloud(f); }
+function uploadLocal(f) {
+  return new Promise(res => {
+    const r = row(f); const x = new XMLHttpRequest();
+    x.open('POST', `/share/upload?k=${encodeURIComponent(K)}&name=${encodeURIComponent(f.name)}&from=${encodeURIComponent(from.value.trim() || 'Phone')}`);
+    x.upload.onprogress = p => { if (p.lengthComputable) r.prog(p.loaded / p.total); };
+    x.onload = () => { r.done(x.status === 200, 'Failed — scan the QR code again'); res(); };
+    x.onerror = () => { r.done(false, 'Failed — is the phone on the same WiFi?'); res(); };
+    x.send(f);
+  });
+}
+// ---- cloud: find the studio PC through PeerJS, then send straight to it over the WiFi ----
+let conn = null, waiters = new Map();
+function loadPeerJs() { return window.Peer ? Promise.resolve() : new Promise((ok, bad) => { const sc = document.createElement('script'); sc.src = 'peerjs.min.js'; sc.onload = ok; sc.onerror = () => bad(new Error('Could not load — check the internet')); document.head.append(sc); }); }
+function link() {
+  if (conn && conn.open) return Promise.resolve(conn);
+  return loadPeerJs().then(() => new Promise((ok, bad) => {
+    const peer = new Peer(peerOpts(SRV));
+    const fail = msg => { try { peer.destroy(); } catch {} bad(new Error(msg)); };
+    const to = setTimeout(() => fail('Nova Studio not found — is it open on the PC?'), 15000);
+    peer.on('error', e => fail(e.type === 'peer-unavailable' ? 'Nova Studio not found — is it open on the PC?' : 'No internet connection'));
+    peer.on('open', () => {
+      const c = peer.connect(P, { reliable: true, serialization: 'binary', metadata: { k: K, kind: 'share', from: from.value.trim() || 'Phone' } });
+      c.on('open', () => { clearTimeout(to); conn = c; ok(c); });
+      c.on('data', m => { const w = m && waiters.get(m.fid); if (!w) return; if (m.t === 'saved') { waiters.delete(m.fid); w.ok(); } if (m.t === 'denied') w.bad(new Error('Not allowed — scan the QR code again')); });
+      c.on('close', () => { conn = null; for (const w of waiters.values()) w.bad(new Error('Connection lost')); waiters.clear(); });
+    });
+  }));
+}
+async function uploadCloud(f) {
+  const r = row(f);
+  try {
+    if (!P || !K) throw new Error('Scan the QR code in Nova Studio first');
+    const c = await link(); const fid = Math.random().toString(36).slice(2, 10);
+    const saved = new Promise((ok, bad) => waiters.set(fid, { ok, bad }));
+    c.send({ t: 'file-start', fid, name: f.name, size: f.size, from: from.value.trim() || 'Phone' });
+    const CH = 256 * 1024;
+    for (let o = 0; o < f.size; o += CH) {
+      if (!c.open) throw new Error('Connection lost');
+      while (c.dataChannel && c.dataChannel.bufferedAmount > 4e6) await new Promise(z => setTimeout(z, 30));
+      c.send({ t: 'chunk', fid, d: await f.slice(o, o + CH).arrayBuffer() }); r.prog(Math.min(1, (o + CH) / f.size) * 0.98);
+    }
+    c.send({ t: 'file-end', fid });
+    await saved; r.done(true);
+  } catch (e) { r.done(false, 'Failed — ' + (e.message || e)); }
+}
+</script>
+</body>
+</html>
