@@ -66,6 +66,10 @@
   #start { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 30px; text-align: center; background: radial-gradient(600px 400px at 50% 30%, rgba(255,122,24,.25), transparent), #0b0c10; }
   #start img { width: 84px; height: 84px; border-radius: 20px; }
   #start h1 { margin: 0; font-size: 24px; } #start p { margin: 0; color: #aab; max-width: 420px; }
+  #turn { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6; display: none; flex-direction: column; align-items: center; gap: 12px; padding: 22px 26px; border-radius: 20px; background: rgba(8,9,12,.78); backdrop-filter: blur(8px); text-align: center; font-weight: 800; max-width: 80vw; pointer-events: none; }
+  #turn.on { display: flex; } #turn small { color: #aab; font-weight: 600; }
+  #turn .ph { width: 34px; height: 58px; border: 3px solid #fff; border-radius: 8px; animation: turn 2.2s ease-in-out infinite; }
+  @keyframes turn { 0%, 25% { transform: rotate(0); } 55%, 100% { transform: rotate(-90deg); } }
   #lockOverlay { position: fixed; inset: 0; z-index: 7; display: none; } #lockOverlay.on { display: block; }
   .rot { display: none; } @media (orientation: portrait) { .rot { display: block; } }
 </style>
@@ -93,10 +97,12 @@
 </div>
 <div class="bar bottom"><span class="hint" id="hint"><span class="rot">Turn your phone sideways for a wide picture • </span>Nova Studio controls this camera</span></div>
 <div id="lockOverlay"></div>
+<div id="turn"><div class="ph"></div><div>Turn the phone sideways</div><small>for a landscape (16:9) picture</small></div>
 
 <div class="sheet" id="sheet">
   <h3>Camera settings</h3>
   <div class="row"><label>Name</label><input type="text" id="nameIn" maxlength="40" placeholder="e.g. Pulpit phone"></div>
+  <div class="row"><label>Picture</label><div class="seg" id="orientSeg"><button data-v="landscape">Landscape</button><button data-v="portrait">Portrait</button></div></div>
   <div class="row"><label>Quality</label><div class="seg" id="resSeg"><button data-v="720">720p</button><button data-v="1080">1080p</button></div></div>
   <div class="row"><label>Frame rate</label><div class="seg" id="fpsSeg"><button data-v="24">24</button><button data-v="30">30</button><button data-v="60">60</button></div></div>
   <div class="row"><label>Microphone</label><div class="seg" id="micSeg"><button data-v="1">Send sound</button><button data-v="0">Off</button></div></div>
@@ -132,7 +138,7 @@ if (LOCAL) $('#mf').href = '/manifest.webmanifest?k=' + encodeURIComponent(K); e
 let ID = localStorage.getItem('nova.id'); if (!ID) { ID = 'ph' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); localStorage.setItem('nova.id', ID); }
 const guessName = () => { const ua = navigator.userAgent; const m = /Android [\d.]+; ([^;)]+)/.exec(ua); return m ? m[1].replace(/Build.*/, '').trim().slice(0, 28) : /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : 'Phone'; };
 const S = { name: localStorage.getItem('nova.name') || guessName(), res: +(localStorage.getItem('nova.res') || 1080), fps: +(localStorage.getItem('nova.fps') || 30), mic: localStorage.getItem('nova.mic') !== '0',
-  facing: localStorage.getItem('nova.facing') || 'environment', torch: false, zoom: 1, zcaps: null, mode: 'rtc', tally: '', pcName: '', locked: false };
+  facing: localStorage.getItem('nova.facing') || 'environment', orient: localStorage.getItem('nova.orient') || 'landscape', torch: false, zoom: 1, zcaps: null, mode: 'rtc', tally: '', pcName: '', locked: false };
 let SID = '', stream = null, ws = null, pc = null, jpegTimer = null, wakeLock = null, retry = 0, zoomSpeed = 0, zoomTimer = null;
 const rtts = []; let lastStatus = {};
 
@@ -204,7 +210,7 @@ async function connectCloud() {
   try { await loadPeerJs(); } catch { linkDown(false, '(no internet?)'); return; }
   const dead = { readyState: 3, bufferedAmount: 0, send() {} }; ws = dead;
   const go = () => {
-    const conn = peer.connect(P, { reliable: true, serialization: 'json', metadata: { k: K, id: ID, name: S.name, kind: 'cam' } });
+    const conn = peer.connect(P, { reliable: true, serialization: 'binary', metadata: { k: K, id: ID, name: S.name, kind: 'cam' } });
     let opened = false;
     const w = { readyState: 0, get bufferedAmount() { return conn.dataChannel ? conn.dataChannel.bufferedAmount : 0; }, send: d => conn.send(d), conn };
     ws = w;
@@ -244,7 +250,7 @@ async function onMsg(m) {
 }
 async function startRtc(sdp) {
   stopRtc(); stopJpeg();
-  pc = new RTCPeerConnection({ iceServers: [] });
+  pc = new RTCPeerConnection({ iceServers: LOCAL ? [] : [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }, { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' }] });
   const mySid = SID; pc.onicecandidate = e => { if (e.candidate) send({ t: 'ice', c: e.candidate, sid: mySid }); };
   pc.onconnectionstatechange = () => { if (pc && ['failed'].includes(pc.connectionState)) send({ t: 'rtc-failed', sid: SID }); };
   for (const t of stream.getTracks()) pc.addTrack(t, stream);
@@ -261,10 +267,10 @@ function startJpeg() {
   stopJpeg(); const v = $('#v');
   jpegTimer = setInterval(() => {
     if (!ws || ws.readyState !== 1 || ws.bufferedAmount > 1.5e6 || !v.videoWidth) return;
-    const w = Math.min(1280, v.videoWidth), h = Math.round(v.videoHeight * w / v.videoWidth);
+    const big = Math.max(v.videoWidth, v.videoHeight), lim = LOCAL ? 1280 : 960, k = Math.min(1, lim / big); const w = Math.round(v.videoWidth * k), h = Math.round(v.videoHeight * k);
     if (cv.width !== w) { cv.width = w; cv.height = h; } cv.getContext('2d').drawImage(v, 0, 0, w, h);
-    cv.toBlob(b => b && (LOCAL ? b.arrayBuffer().then(buf => ws && ws.readyState === 1 && ws.send(buf)) : new Promise(r => { const fr = new FileReader(); fr.onload = () => { if (ws && ws.readyState === 1) ws.send({ t: 'jpeg', d: fr.result.split(',')[1] }); r(); }; fr.readAsDataURL(b); })), 'image/jpeg', LOCAL ? 0.72 : 0.6);
-  }, 1000 / Math.min(S.fps, 25));
+    cv.toBlob(b => b && b.arrayBuffer().then(buf => ws && ws.readyState === 1 && ws.send(buf)), 'image/jpeg', LOCAL ? 0.72 : 0.6);
+  }, 1000 / Math.min(S.fps, LOCAL ? 25 : 15));
 }
 function stopJpeg() { clearInterval(jpegTimer); jpegTimer = null; }
 async function applyAdv(c) { const t = stream && stream.getVideoTracks()[0]; if (!t) return; try { await t.applyConstraints({ advanced: [c] }); } catch {} sendStatus(); }
@@ -297,7 +303,7 @@ function sendStatus(force) {
   const t = stream && stream.getVideoTracks()[0]; const st = t && t.getSettings ? t.getSettings() : {};
   const s = { t: 'status', name: S.name, q: S.q, rtt: S.rtt != null ? Math.round(S.rtt) : null, jitter: S.jitter != null ? Math.round(S.jitter) : null, loss: Math.round(lossPct * 10) / 10,
     battery: battery ? Math.round(battery.level * 100) : null, charging: battery ? battery.charging : null, zoom: Math.round(S.zoom * 100) / 100, zcaps: S.zcaps, torch: S.torch, torchOk: !!S.torchOk,
-    facing: S.facing, w: st.width, h: st.height, fps: st.frameRate ? Math.round(st.frameRate) : S.fps, mode: S.mode, net: navigator.connection ? navigator.connection.effectiveType : null };
+    facing: S.facing, orient: portraitQ.matches ? 'portrait' : 'landscape', w: st.width, h: st.height, fps: st.frameRate ? Math.round(st.frameRate) : S.fps, mode: S.mode, net: navigator.connection ? navigator.connection.effectiveType : null };
   const key = JSON.stringify(s); if (!force && key === lastStatus.key && Date.now() - lastStatus.at < 5000) return; lastStatus = { key, at: Date.now() }; send(s);
 }
 function renderStats() {
@@ -321,6 +327,7 @@ $('#closeSheet').onclick = () => $('#sheet').classList.remove('open');
 $('#nameIn').value = S.name; $('#camName').textContent = S.name;
 $('#nameIn').onchange = e => { S.name = e.target.value.trim() || guessName(); localStorage.setItem('nova.name', S.name); $('#camName').textContent = S.name; send({ t: 'rename', name: S.name }); };
 const seg = (id, key, cb) => { const el = $(id); const draw = () => el.querySelectorAll('button').forEach(b => b.classList.toggle('on', String(b.dataset.v) === String(key()))); el.querySelectorAll('button').forEach(b => b.onclick = () => { cb(b.dataset.v); draw(); }); draw(); };
+seg('#orientSeg', () => S.orient, v => { S.orient = v; localStorage.setItem('nova.orient', v); checkTurn(); });
 seg('#resSeg', () => S.res, v => { S.res = +v; localStorage.setItem('nova.res', v); openCamera(); });
 seg('#fpsSeg', () => S.fps, v => { S.fps = +v; localStorage.setItem('nova.fps', v); openCamera(); });
 seg('#micSeg', () => (S.mic ? 1 : 0), v => { S.mic = v === '1'; localStorage.setItem('nova.mic', v); openCamera().then(() => send({ t: 'renegotiate' })); });
@@ -328,7 +335,11 @@ seg('#focusSeg', () => S.focusMode || 'continuous', v => { S.focusMode = v; appl
 $('#expIn').oninput = e => applyAdv({ exposureCompensation: +e.target.value });
 document.addEventListener('visibilitychange', async () => { if (document.visibilityState === 'visible') { keepAwake(); if (stream && stream.getVideoTracks()[0].readyState === 'ended') openCamera(); } });
 async function keepAwake() { try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch {} }
-window.addEventListener('resize', drawZoom);
+const portraitQ = matchMedia('(orientation: portrait)');
+function checkTurn() { $('#turn').classList.toggle('on', !!stream && S.orient === 'landscape' && portraitQ.matches); }
+const onTurn = () => { checkTurn(); setTimeout(() => { drawZoom(); sendStatus(true); }, 600); };
+portraitQ.addEventListener ? portraitQ.addEventListener('change', onTurn) : portraitQ.addListener(onTurn);
+window.addEventListener('resize', () => { drawZoom(); checkTurn(); });
 
 // ---------- start ----------
 async function begin() {
@@ -336,7 +347,7 @@ async function begin() {
   if (!window.isSecureContext || !navigator.mediaDevices) { $('#startErr').textContent = 'Open this page from the QR code in Nova Studio.'; return; }
   if (!K || (!LOCAL && !P)) { $('#startErr').textContent = 'Scan the QR code in Nova Studio (Phones tab) to pair this phone.'; return; }
   try { await openCamera(); } catch (e) { $('#startErr').textContent = 'Camera not allowed: ' + (e.message || e.name) + ' — allow camera and microphone for this site.'; return; }
-  $('#start').style.display = 'none'; keepAwake();
+  $('#start').style.display = 'none'; keepAwake(); checkTurn();
   try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {}); } catch {}
   connect(); setInterval(measure, 2000);
 }
