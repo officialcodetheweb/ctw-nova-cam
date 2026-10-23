@@ -94,7 +94,8 @@ const LOCAL = location.pathname === '/remote' && !qs.get('p');
 if (qs.get('p')) localStorage.setItem('nr.p', qs.get('p')); if (qs.get('s') != null) localStorage.setItem('nr.s', qs.get('s'));
 const P = LOCAL ? '' : (qs.get('p') || localStorage.getItem('nr.p') || ''); const SRV = qs.get('s') ?? localStorage.getItem('nr.s') ?? '';
 const peerOpts = s => { if (!s) return { debug: 0 }; try { const u = new URL(/^https?:/.test(s) ? s : 'https://' + s); return { debug: 0, host: u.hostname, port: +u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname || '/', secure: u.protocol === 'https:' }; } catch { return { debug: 0 }; } };
-let pin = localStorage.getItem('nr.pin') || '', entry = '', link = null, st = {}, tab = localStorage.getItem('nr.tab') || 'inputs', tapTo = localStorage.getItem('nr.tap') || 'preview', retry = 0;
+try { localStorage.removeItem('nr.pin'); } catch {}   // the PIN is never remembered: it must be typed every time the remote is opened
+let pin = '', entry = '', link = null, st = {}, tab = localStorage.getItem('nr.tab') || 'inputs', tapTo = localStorage.getItem('nr.tap') || 'preview', retry = 0;
 const toast = t => { const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 1600); };
 // ---------- PIN pad ----------
 function drawPin() { $('#dots').innerHTML = Array.from({ length: Math.max(6, entry.length) }, (_, i) => `<i class="${i < entry.length ? 'f' : ''}"></i>`).join(''); }
@@ -103,8 +104,8 @@ $('#pad').onclick = e => { const k = e.target.dataset.k; if (!k) return; if (k =
 drawPin();
 // ---------- link ----------
 function onMsg(m) {
-  if (m.t === 'ok') { localStorage.setItem('nr.pin', pin); $('#pin').classList.add('off'); $('#app').classList.remove('off'); retry = 0; $('#pLink').className = 'pill on'; return; }
-  if (m.t === 'denied') { localStorage.removeItem('nr.pin'); pin = ''; entry = ''; drawPin(); $('#err').textContent = m.reason || 'Wrong PIN'; $('#pin').classList.remove('off'); $('#app').classList.add('off'); return; }
+  if (m.t === 'ok') { $('#pin').classList.add('off'); $('#app').classList.remove('off'); retry = 0; $('#pLink').className = 'pill on'; return; }
+  if (m.t === 'denied') { pin = ''; entry = ''; drawPin(); $('#err').textContent = m.reason || 'Wrong PIN'; $('#pin').classList.remove('off'); $('#app').classList.add('off'); return; }
   if (m.t === 'state') { st = m; render(); return; }
   if (m.t === 'thumb') { if (m.pgm) $('#iPgm').src = m.pgm; if (m.pvw) $('#iPvw').src = m.pvw; return; }
   if (m.t === 'toast') toast(m.text);

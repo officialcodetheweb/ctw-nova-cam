@@ -359,7 +359,7 @@ function stopRtc() { if (pc) { try { pc.close(); } catch {} pc = null; } }
 // JPEG fallback (when WebRTC cannot connect on this network)
 const cv = document.createElement('canvas');
 function startJpeg() {
-  stopJpeg(); const v = $('#v');
+  stopJpeg(); const v = $('#v'); pcmStart();
   jpegTimer = setInterval(() => {
     if (!ws || ws.readyState !== 1 || ws.bufferedAmount > 1.5e6 || !v.videoWidth) return;
     const big = Math.max(v.videoWidth, v.videoHeight), lim = LOCAL ? 1280 : 960, k = Math.min(1, lim / big); const w = Math.round(v.videoWidth * k), h = Math.round(v.videoHeight * k);
@@ -367,7 +367,26 @@ function startJpeg() {
     cv.toBlob(b => b && b.arrayBuffer().then(buf => ws && ws.readyState === 1 && ws.send(buf)), 'image/jpeg', LOCAL ? 0.72 : 0.6);
   }, 1000 / Math.min(S.fps, LOCAL ? 25 : 15));
 }
-function stopJpeg() { clearInterval(jpegTimer); jpegTimer = null; }
+function stopJpeg() { clearInterval(jpegTimer); jpegTimer = null; pcmStop(); }
+// Sound in compatible mode: when the direct link cannot connect, the microphone travels with the pictures as small PCM packets
+// ("NAU1" + rate/10 + 16-bit mono samples at 24 kHz, about 0.4 Mbit/s)
+const PCM = { sp: null, mute: null, src: null, frac: 0, rate: 24000 };
+function pcmStart() {
+  if (PCM.sp || !actx || !aSrc || !S.mic) return;
+  try {
+    const sp = PCM.sp = actx.createScriptProcessor(2048, 1, 1); const mute = PCM.mute = actx.createGain(); mute.gain.value = 0;
+    aSrc.connect(sp); sp.connect(mute); mute.connect(actx.destination); PCM.src = aSrc; PCM.frac = 0;
+    sp.onaudioprocess = e => {
+      if (!jpegTimer || !S.mic || !ws || ws.readyState !== 1 || ws.bufferedAmount > 2.5e6) return;
+      const x = e.inputBuffer.getChannelData(0), ratio = actx.sampleRate / PCM.rate, n = Math.floor((x.length - PCM.frac) / ratio); if (n <= 0) return;
+      const out = new ArrayBuffer(8 + n * 2), dv = new DataView(out); dv.setUint8(0, 0x4e); dv.setUint8(1, 0x41); dv.setUint8(2, 0x55); dv.setUint8(3, 0x31); dv.setUint16(4, PCM.rate / 10, true);
+      for (let i = 0; i < n; i++) { const p = PCM.frac + i * ratio, k = p | 0, t = p - k, a = x[k], b = k + 1 < x.length ? x[k + 1] : a; let v = a + (b - a) * t; v = v > 1 ? 1 : v < -1 ? -1 : v; dv.setInt16(8 + i * 2, v * 32767, true); }
+      PCM.frac = PCM.frac + n * ratio - x.length;
+      try { ws.send(out); } catch {}
+    };
+  } catch (e) { console.warn('pcm', e); PCM.sp = null; }
+}
+function pcmStop() { if (!PCM.sp) return; try { PCM.sp.onaudioprocess = null; PCM.src && PCM.src.disconnect(PCM.sp); PCM.sp.disconnect(); PCM.mute.disconnect(); } catch {} PCM.sp = PCM.mute = PCM.src = null; }
 async function applyAdv(c) { const t = stream && stream.getVideoTracks()[0]; if (!t) return; try { await t.applyConstraints({ advanced: [c] }); } catch {} sendStatus(); }
 async function setTorch(on) { S.torch = on; $('#bTorch').classList.toggle('on', on); await applyAdv({ torch: on }); }
 
@@ -518,6 +537,7 @@ function setupAudio(st) {
     anL = actx.createAnalyser(); anR = actx.createAnalyser(); anL.fftSize = anR.fftSize = 1024; aSrc.connect(sp); sp.connect(anL, 0); try { sp.connect(anR, 1); } catch { aSrc.connect(anR); }
     if ((tr.getSettings().channelCount || 1) < 2) { try { sp.disconnect(anR); } catch {} sp.connect(anR, 0); }
   } catch (e) { console.warn('meter', e); }
+  if (jpegTimer) { pcmStop(); pcmStart(); }   // new microphone (camera reopened): keep sending its sound
 }
 addEventListener('pointerdown', () => { if (actx && actx.state !== 'running') actx.resume().catch(() => {}); }, { capture: true });
 const fbuf = new Float32Array(1024);
