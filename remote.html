@@ -55,6 +55,16 @@
   .off { display: none !important; }
   .lyr { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 8px; } .lyr .big { font-size: 15px; padding: 14px 6px; }
   .sub { font-size: 10.5px; color: var(--dim); font-weight: 800; letter-spacing: .08em; margin: 12px 0 0; }
+  .cm { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; max-height: 62vh; overflow-y: auto; }
+  .cmr { display: flex; gap: 8px; align-items: center; background: var(--p2); border: 2px solid transparent; border-radius: 10px; padding: 8px; }
+  .cmr.on { border-color: var(--err); background: rgba(239,68,68,.12); } .cmr.star { border-color: var(--a); } .cmr.super { background: linear-gradient(90deg, rgba(251,191,36,.2), var(--p2)); }
+  .cmr .av { width: 34px; height: 34px; border-radius: 50%; flex: 0 0 auto; display: grid; place-items: center; font-weight: 900; color: #fff; object-fit: cover; }
+  .cmr .bd { flex: 1; min-width: 0; } .cmr b { font-size: 13px; color: var(--b); } .cmr p { margin: 2px 0 0; font-size: 14px; word-break: break-word; }
+  .cmr .tg { font-size: 10px; font-weight: 800; padding: 1px 5px; border-radius: 4px; margin-left: 4px; background: var(--p1); color: var(--dim); }
+  .cmr button { border: 0; border-radius: 9px; background: var(--p1); padding: 10px 11px; font-weight: 800; font-size: 12px; }
+  .cmr button.sh { background: linear-gradient(135deg, var(--a), var(--b)); color: #fff; } .cmr.on button.sh { background: var(--err); }
+  .pbar { position: relative; height: 30px; border-radius: 8px; background: var(--p2); overflow: hidden; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; font-weight: 800; font-size: 13px; margin-top: 5px; }
+  .pbar i { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(255,122,24,.45); } .pbar span, .pbar em { position: relative; font-style: normal; }
 </style>
 </head>
 <body>
@@ -71,7 +81,7 @@
   <div class="card plan" id="planCard"><div class="now" id="planNow"><small>SERVICE PLAN</small><b>—</b></div><button class="prev" data-a="planPrev">◀</button><button class="next" data-a="planNext"><b>NEXT</b><small id="planNext">—</small></button></div>
   </div>
   <div class="card col2">
-    <div class="tabs" id="tabs"><button data-t="inputs" class="on">Inputs</button><button data-t="titles">Titles</button><button data-t="lyrics">Lyrics</button><button data-t="fx">Effects</button><button data-t="replay">Replay</button><button data-t="live">Stream</button></div>
+    <div class="tabs" id="tabs"><button data-t="inputs" class="on">Inputs</button><button data-t="titles">Titles</button><button data-t="lyrics">Lyrics</button><button data-t="fx">Effects</button><button data-t="replay">Replay</button><button data-t="chat">Comments</button><button data-t="live">Stream</button></div>
     <div id="pane"></div>
   </div>
 </div>
@@ -154,12 +164,25 @@ function render() {
       ${st.replaying ? '<div class="row"><button class="tile danger" data-act="replayLive" style="padding:16px">● BACK TO LIVE</button></div>' : ''}
       <div class="lyr"><button class="big auto" data-act="replay5">Last 5 s</button><button class="big auto" data-act="replay8">Last 8 s</button><button class="big" data-act="replayMark">◆ Mark</button><button class="big" data-act="replayPlayMark">▶ Play mark</button></div>
       <div class="row"><button class="tile" data-act="replay12">Last 12 s</button><button class="tile" data-act="replayFreeze">Freeze & punch-in</button></div>`;
+  } else if (tab === 'chat') {
+    const c = st.chat || { msgs: [] }; const PC = { youtube: '#ff0033', facebook: '#1877f2', twitch: '#9146ff', test: '#64748b' };
+    html += `<div class="row"><button class="tile" data-act="chatShowLatest" style="background:linear-gradient(135deg,var(--a),var(--b));color:#fff">▶ Show newest</button><button class="tile" data-act="chatShowStarred">★ Next starred</button><button class="tile danger" data-act="chatHide" ${c.featured ? '' : 'disabled'}>Hide</button></div>`;
+    if (c.poll) { const tot = Math.max(1, c.poll.votes);
+      html += `<div class="sub">POLL · ${esc(c.poll.q)} · ${c.poll.votes} VOTES</div>` + c.poll.options.map((o, i) => `<div class="pbar"><i style="width:${Math.round(o.n / tot * 100)}%"></i><span>${i + 1}. ${esc(o.text)}</span><em>${Math.round(o.n / tot * 100)}%</em></div>`).join('')
+        + `<div class="row"><button class="tile ${c.poll.show ? 'on' : ''}" data-act="pollToggle"><i></i><span>${c.poll.show ? 'Poll on screen' : 'Show poll on screen'}</span></button></div>`; }
+    html += `<div class="sub">LIVE COMMENTS${(c.sources || []).some(s => s.state === 'on') ? '' : ' · NOT CONNECTED (connect in Nova Studio)'}</div><div class="cm" id="cmList">`;
+    for (const m of [...c.msgs].reverse()) html += `<div class="cmr ${m.id === c.featured ? 'on' : ''} ${m.starred ? 'star' : ''} ${m.tag === 'super' ? 'super' : ''}">`
+      + (m.avatar ? `<img class="av" src="${esc(m.avatar)}" referrerpolicy="no-referrer">` : `<span class="av" style="background:${PC[m.platform] || '#555'}">${esc((m.name || '?')[0].toUpperCase())}</span>`)
+      + `<div class="bd"><b>${esc(m.name)}</b>${m.tag === 'prayer' ? '<span class="tg">🙏 PRAYER</span>' : m.tag === 'question' ? '<span class="tg">? QUESTION</span>' : m.amount ? `<span class="tg">${esc(m.amount)}</span>` : ''}<p>${esc(m.text)}</p></div>`
+      + `<button data-act="chatStar" data-t="${esc(m.id)}">${m.starred ? '★' : '☆'}</button><button class="sh" data-act="${m.id === c.featured ? 'chatHide' : 'chatShow'}" data-t="${esc(m.id)}">${m.id === c.featured ? 'HIDE' : 'SHOW'}</button></div>`;
+    if (!c.msgs.length) html += '<p style="color:var(--dim);text-align:center;padding:20px">No comments yet.</p>';
+    html += '</div>';
   } else if (tab === 'live') {
     html += `<div class="sub">STREAM & RECORDING</div><div class="lyr">
       <button class="big ${st.streaming ? '' : 'auto'}" data-act="${st.streaming ? 'streamStop' : 'streamStart'}" data-confirm="${st.streaming ? 'Stop the live stream?' : 'Go live now?'}">${st.streaming ? '■ STOP STREAM' : '● GO LIVE'}</button>
       <button class="big ${st.recording ? '' : 'auto'}" data-act="${st.recording ? 'recordStop' : 'recordStart'}" data-confirm="${st.recording ? 'Stop recording?' : ''}">${st.recording ? '■ STOP REC' : '● RECORD'}</button></div>`;
   }
-  pane.innerHTML = html;
+  const keep = $('#cmList') ? $('#cmList').scrollTop : 0; pane.innerHTML = html; if ($('#cmList')) $('#cmList').scrollTop = keep;
 }
 $('#pane').addEventListener('click', e => {
   const s = e.target.closest('#tapSeg button'); if (s) { tapTo = s.dataset.v; localStorage.setItem('nr.tap', tapTo); render(); return; }
