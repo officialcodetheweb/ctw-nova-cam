@@ -7,84 +7,111 @@
 <title>Nova Call — join the live service</title>
 <link rel="icon" href="icon.png">
 <style>
-  :root { --bg: #0b0c10; --panel: #14161c; --panel2: #1b1e26; --line: #2a2e38; --text: #f3f4f6; --dim: #9aa3b5; --acc: #ff7a18; --acc2: #ffb347; --red: #e11d2e; --green: #22c55e; }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 15px/1.4 "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; }
-  button, input, select { font: inherit; color: inherit; }
+  :root { --bg: #0b0c10; --panel: #14161c; --panel2: #1b1e26; --line: #2a2e38; --text: #f3f4f6; --dim: #9aa3b5; --acc: #ff7a18; --acc2: #ffb347; --red: #e11d2e; --green: #22c55e;
+    --st: env(safe-area-inset-top, 0px); --sb: env(safe-area-inset-bottom, 0px); --sl: env(safe-area-inset-left, 0px); --sr: env(safe-area-inset-right, 0px); --btn: clamp(44px, 12.5vw, 54px); }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 15px/1.4 "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; overscroll-behavior: none; }
+  button, input, select, textarea { font: inherit; color: inherit; }
   .btn { border: 1px solid var(--line); background: var(--panel2); border-radius: 12px; padding: 11px 18px; font-weight: 700; cursor: pointer; }
   .btn.primary { background: linear-gradient(135deg, var(--acc), var(--acc2)); border: 0; color: #1a0f00; }
-  .btn.danger { background: var(--red); border: 0; color: #fff; }
   .btn:disabled { opacity: .5; cursor: default; }
   .hide { display: none !important; }
-  /* join */
-  #join { min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 20px; }
-  .card { width: min(880px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 22px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 22px; box-shadow: 0 30px 80px rgba(0,0,0,.5); }
+  /* ---------- join ---------- */
+  #join { min-height: 100%; display: flex; align-items: center; justify-content: center; padding: calc(16px + var(--st)) calc(14px + var(--sr)) calc(16px + var(--sb)) calc(14px + var(--sl)); }
+  .card { width: min(880px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: clamp(14px, 4vw, 22px); display: grid; grid-template-columns: 1.2fr 1fr; gap: clamp(14px, 4vw, 22px); box-shadow: 0 30px 80px rgba(0,0,0,.5); }
   .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; } .brand img { width: 34px; height: 34px; border-radius: 9px; } .brand b { letter-spacing: .08em; font-size: 13px; } .brand small { color: var(--acc); font-weight: 800; font-size: 11px; letter-spacing: .14em; display: block; }
-  h1 { font-size: 24px; margin: 6px 0 4px; } .sub { color: var(--dim); margin: 0 0 16px; }
+  h1 { font-size: clamp(20px, 5.5vw, 24px); margin: 6px 0 4px; } .sub { color: var(--dim); margin: 0 0 12px; }
   .self { position: relative; aspect-ratio: 16/9; border-radius: 14px; overflow: hidden; background: #000; border: 1px solid var(--line); }
   .self video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
   .self .off { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--dim); }
   .meter { height: 6px; background: #000; border-radius: 4px; overflow: hidden; margin-top: 8px; } .meter i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--green), #eab308, var(--red)); transition: width .08s; }
-  label { display: block; color: var(--dim); font-size: 12px; font-weight: 700; letter-spacing: .04em; margin: 12px 0 5px; text-transform: uppercase; }
-  input[type=text], select { width: 100%; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
-  .tip { background: rgba(255,122,24,.1); border: 1px solid rgba(255,122,24,.35); border-radius: 10px; padding: 9px 12px; font-size: 13px; color: #ffd1a8; margin-top: 14px; }
+  label { display: block; color: var(--dim); font-size: 12px; font-weight: 700; letter-spacing: .04em; margin: 10px 0 5px; text-transform: uppercase; }
+  input[type=text], select { width: 100%; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; font-size: 16px; }
+  .tip { background: rgba(255,122,24,.1); border: 1px solid rgba(255,122,24,.35); border-radius: 10px; padding: 9px 12px; font-size: 13px; color: #ffd1a8; margin-top: 12px; }
+  .a2hs { display: flex; gap: 10px; align-items: center; background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.4); border-radius: 12px; padding: 10px 12px; margin-top: 12px; font-size: 13px; color: #bbf7d0; }
+  .a2hs b { color: #fff; } .a2hs .x { margin-left: auto; display: flex; gap: 6px; flex: none; } .a2hs button { border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.06); border-radius: 9px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .a2hs button.go { background: var(--green); border-color: var(--green); color: #052e16; }
   .err { color: #fca5a5; font-size: 13px; min-height: 18px; margin-top: 8px; }
-  /* waiting */
+  /* ---------- waiting ---------- */
   #wait { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 24px; background: radial-gradient(circle at 50% 30%, #1d1306, var(--bg) 60%); }
   .spin { width: 54px; height: 54px; border-radius: 50%; border: 4px solid rgba(255,122,24,.2); border-top-color: var(--acc); animation: sp 1s linear infinite; } @keyframes sp { to { transform: rotate(360deg); } }
-  /* live */
-  #live { position: fixed; inset: 0; display: grid; grid-template-columns: 1fr 360px; grid-template-rows: 1fr auto; }
-  #live.nochat { grid-template-columns: 1fr 0; } #live.nochat .chat { display: none; }
-  .stage { position: relative; background: #000; min-height: 0; grid-column: 1; grid-row: 1; }
-  .stage > video { width: 100%; height: 100%; object-fit: contain; }
-  .stage .nofeed { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--dim); text-align: center; padding: 20px; }
-  .pip { position: absolute; right: 14px; bottom: 14px; width: min(26vw, 240px); aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; border: 3px solid #555; background: #000; box-shadow: 0 10px 30px rgba(0,0,0,.6); }
-  .pip video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-  .pip.program { border-color: var(--red); } .pip.preview { border-color: var(--green); }
-  .tally { position: absolute; left: 14px; top: 14px; padding: 7px 14px; border-radius: 999px; font-weight: 900; letter-spacing: .12em; font-size: 13px; background: rgba(0,0,0,.65); border: 1px solid #444; }
+  /* ---------- live: every part has its own space — nothing covers anything ---------- */
+  #live { position: fixed; inset: 0; height: 100dvh; display: grid; padding: var(--st) var(--sr) 0 var(--sl);
+    grid-template-areas: "top top" "stage chat" "bar bar"; grid-template-columns: minmax(0, 1fr) 360px; grid-template-rows: auto minmax(0, 1fr) auto; }
+  #live.nochat { grid-template-columns: minmax(0, 1fr) 0; } #live.nochat .chat { display: none; }
+  .top { grid-area: top; display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line); min-height: 48px; }
+  .tally { padding: 6px 12px; border-radius: 999px; font-weight: 900; letter-spacing: .1em; font-size: 12px; background: #262a33; border: 1px solid #3a3f4b; white-space: nowrap; }
   .tally.program { background: var(--red); border-color: #ff6b77; animation: pulse 1.6s ease-in-out infinite; } .tally.preview { background: #15803d; border-color: #4ade80; }
-  @keyframes pulse { 50% { box-shadow: 0 0 0 8px rgba(225,29,46,.25); } }
-  .msg { position: absolute; left: 50%; top: 16px; transform: translateX(-50%); max-width: min(90vw, 640px); background: rgba(20,22,28,.94); border: 1px solid var(--acc); border-radius: 14px; padding: 12px 18px; font-size: 18px; font-weight: 700; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
-  .msg small { display: block; color: var(--acc); font-size: 11px; letter-spacing: .14em; margin-bottom: 2px; }
-  .net { position: absolute; right: 14px; top: 14px; font-size: 12px; color: var(--dim); background: rgba(0,0,0,.55); padding: 5px 10px; border-radius: 999px; }
-  .bar { grid-column: 1 / -1; grid-row: 2; display: flex; gap: 10px; justify-content: center; align-items: center; padding: 12px; background: var(--panel); border-top: 1px solid var(--line); flex-wrap: wrap; }
-  .rb { width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel2); display: flex; align-items: center; justify-content: center; cursor: pointer; }
-  .rb svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  .rb.off { background: #3b0d12; border-color: var(--red); color: #fca5a5; } .rb.leave { background: var(--red); border-color: var(--red); width: 64px; border-radius: 26px; }
-  .vol { display: flex; align-items: center; gap: 8px; color: var(--dim); font-size: 12px; } .vol input { width: 110px; accent-color: var(--acc); }
-  /* chat panel */
-  .chat { grid-column: 2; grid-row: 1; display: flex; flex-direction: column; min-height: 0; background: var(--panel); border-left: 1px solid var(--line); }
-  .chat-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
-  .chat-head .av { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--acc), var(--acc2)); display: flex; align-items: center; justify-content: center; color: #1a0f00; font-weight: 900; font-size: 13px; flex: none; }
-  .chat-head b { display: block; font-size: 14px; } .chat-head small { color: var(--green); font-size: 11px; font-weight: 700; } .chat-head .x { margin-left: auto; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel2); cursor: pointer; display: none; }
-  .chat-log { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px; scroll-behavior: smooth; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 6px rgba(225,29,46,.25); } }
+  .top .ttl { font-weight: 800; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; } .top .ttl small { display: block; color: var(--dim); font-weight: 600; font-size: 11px; }
+  .net { font-size: 11px; color: var(--dim); background: #1b1e26; padding: 5px 9px; border-radius: 999px; white-space: nowrap; border: 1px solid var(--line); }
+  .hear { border: 0; background: linear-gradient(135deg, var(--acc), var(--acc2)); color: #1a0f00; border-radius: 999px; padding: 7px 12px; font-weight: 800; font-size: 12px; cursor: pointer; white-space: nowrap; animation: pulse2 1.4s ease-in-out infinite; }
+  @keyframes pulse2 { 50% { box-shadow: 0 0 0 6px rgba(255,122,24,.3); } }
+  .stage { grid-area: stage; position: relative; background: #000; min-height: 0; overflow: hidden; }
+  .stage video { position: absolute; background: #000; transition: all .28s cubic-bezier(.2,.8,.2,1); }
+  .stage video.main { inset: 0; width: 100%; height: 100%; object-fit: contain; border-radius: 0; z-index: 1; }
+  .stage video.mirror { transform: scaleX(-1); }
+  .pipbox { position: absolute; z-index: 3; width: clamp(96px, 28%, 240px); aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; border: 3px solid #555; box-shadow: 0 10px 30px rgba(0,0,0,.6); touch-action: none; cursor: pointer; background: #000; transition: left .25s, top .25s, right .25s, bottom .25s; }
+  .pipbox.portrait { aspect-ratio: 3/4; width: clamp(80px, 24%, 170px); }
+  .pipbox.c-br { right: 10px; bottom: 10px; } .pipbox.c-bl { left: 10px; bottom: 10px; } .pipbox.c-tr { right: 10px; top: 10px; } .pipbox.c-tl { left: 10px; top: 10px; }
+  .pipbox.program { border-color: var(--red); } .pipbox.preview { border-color: var(--green); }
+  .pipbox video.pip { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+  .pipbox .lbl { position: absolute; left: 5px; bottom: 5px; z-index: 2; font-size: 10px; font-weight: 800; background: rgba(0,0,0,.7); padding: 2px 7px; border-radius: 99px; pointer-events: none; }
+  .pipbox .sw { position: absolute; right: 5px; top: 5px; z-index: 2; width: 22px; height: 22px; border-radius: 50%; background: rgba(0,0,0,.65); display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .pipbox .sw svg { width: 13px; height: 13px; fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .stage .nofeed { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; color: var(--dim); text-align: center; padding: 20px; pointer-events: none; }
+  .msg { position: absolute; z-index: 4; left: 50%; top: 10px; transform: translateX(-50%); width: max-content; max-width: calc(100% - 20px); background: rgba(20,22,28,.95); border: 1px solid var(--acc); border-radius: 14px; padding: 10px 16px; font-size: clamp(15px, 4.2vw, 18px); font-weight: 700; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,.6); animation: drop .25s ease-out; }
+  @keyframes drop { from { transform: translate(-50%, -10px); opacity: 0; } }
+  .msg small { display: block; color: var(--acc); font-size: 10px; letter-spacing: .14em; margin-bottom: 2px; }
+  .bar { grid-area: bar; display: flex; gap: clamp(6px, 2vw, 12px); justify-content: center; align-items: center; padding: 10px 10px calc(10px + var(--sb)); background: var(--panel); border-top: 1px solid var(--line); }
+  .rb { position: relative; width: var(--btn); height: var(--btn); flex: none; border-radius: 50%; border: 1px solid var(--line); background: var(--panel2); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+  .rb svg { width: 45%; height: 45%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .rb.off { background: #3b0d12; border-color: var(--red); color: #fca5a5; } .rb.leave { background: var(--red); border-color: var(--red); width: calc(var(--btn) * 1.25); border-radius: 26px; }
+  .rb.on { border-color: var(--acc); color: var(--acc); }
+  .rb .badge { position: absolute; top: -2px; right: -2px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--red); color: #fff; font-size: 11px; font-weight: 800; line-height: 18px; padding: 0 5px; display: none; }
+  .rb.has .badge { display: block; }
+  .vol { display: flex; align-items: center; gap: 6px; color: var(--dim); } .vol input { width: 100px; accent-color: var(--acc); }
+  /* chat */
+  .chat { grid-area: chat; display: flex; flex-direction: column; min-height: 0; background: var(--panel); border-left: 1px solid var(--line); }
+  .chat-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  .chat-head .av { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--acc), var(--acc2)); display: flex; align-items: center; justify-content: center; color: #1a0f00; font-weight: 900; font-size: 12px; flex: none; }
+  .chat-head b { display: block; font-size: 14px; } .chat-head small { color: var(--green); font-size: 11px; font-weight: 700; }
+  .chat-head .x { margin-left: auto; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel2); cursor: pointer; display: none; flex: none; }
+  .chat-log { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
   .chat-empty { margin: auto; text-align: center; color: var(--dim); font-size: 13px; max-width: 240px; }
-  .bub { max-width: 82%; padding: 8px 12px 6px; border-radius: 16px; font-size: 14px; line-height: 1.35; word-wrap: break-word; white-space: pre-wrap; position: relative; animation: pop .18s ease-out; }
+  .bub { max-width: 84%; padding: 8px 12px 6px; border-radius: 16px; font-size: 14px; line-height: 1.35; overflow-wrap: anywhere; white-space: pre-wrap; animation: pop .18s ease-out; }
   @keyframes pop { from { transform: translateY(6px); opacity: 0; } }
   .bub.them { align-self: flex-start; background: var(--panel2); border: 1px solid var(--line); border-bottom-left-radius: 5px; }
   .bub.me { align-self: flex-end; background: linear-gradient(135deg, #ff8a2e, var(--acc)); color: #1a0f00; border-bottom-right-radius: 5px; }
   .bub.big { border-color: var(--acc); background: rgba(255,122,24,.12); }
-  .bub .who { display: block; font-size: 11px; font-weight: 800; color: var(--acc); margin-bottom: 2px; letter-spacing: .02em; }
+  .bub .who { display: block; font-size: 11px; font-weight: 800; color: var(--acc); margin-bottom: 2px; }
   .bub time { display: block; text-align: right; font-size: 10px; opacity: .6; margin-top: 2px; }
   .sys { align-self: center; font-size: 11px; color: var(--dim); background: rgba(255,255,255,.05); padding: 3px 10px; border-radius: 99px; }
-  .quick { display: flex; gap: 6px; padding: 0 12px 8px; overflow-x: auto; scrollbar-width: none; } .quick::-webkit-scrollbar { display: none; }
-  .quick button { flex: none; border: 1px solid var(--line); background: var(--panel2); border-radius: 99px; padding: 5px 11px; font-size: 12px; cursor: pointer; white-space: nowrap; }
-  .quick button:hover { border-color: var(--acc); }
-  .compose { display: flex; align-items: flex-end; gap: 8px; padding: 10px 12px 12px; border-top: 1px solid var(--line); }
-  .compose textarea { flex: 1; resize: none; min-height: 42px; max-height: 110px; background: var(--panel2); border: 1px solid var(--line); border-radius: 21px; padding: 10px 14px; font: inherit; font-size: 14px; color: var(--text); outline: none; }
+  .quick { display: flex; gap: 6px; padding: 0 10px 8px; overflow-x: auto; scrollbar-width: none; flex: none; } .quick::-webkit-scrollbar { display: none; }
+  .quick button { flex: none; border: 1px solid var(--line); background: var(--panel2); border-radius: 99px; padding: 6px 11px; font-size: 12px; cursor: pointer; white-space: nowrap; }
+  .compose { display: flex; align-items: flex-end; gap: 8px; padding: 8px 10px 10px; border-top: 1px solid var(--line); flex: none; }
+  .compose textarea { flex: 1; min-width: 0; resize: none; min-height: 42px; max-height: 96px; background: var(--panel2); border: 1px solid var(--line); border-radius: 21px; padding: 10px 14px; font-size: 16px; color: var(--text); outline: none; }
   .compose textarea:focus { border-color: var(--acc); }
-  .send { width: 42px; height: 42px; flex: none; border-radius: 50%; border: 0; background: linear-gradient(135deg, var(--acc), var(--acc2)); color: #1a0f00; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform .1s; }
-  .send:disabled { opacity: .4; cursor: default; } .send:not(:disabled):active { transform: scale(.92); }
-  .send svg { width: 20px; height: 20px; fill: currentColor; margin-left: 2px; }
-  .rb .badge { position: absolute; top: -2px; right: -2px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--red); color: #fff; font-size: 11px; font-weight: 800; line-height: 18px; padding: 0 5px; display: none; }
-  .rb { position: relative; } .rb.has .badge { display: block; } .rb.on { border-color: var(--acc); color: var(--acc); }
+  .send { width: 42px; height: 42px; flex: none; border-radius: 50%; border: 0; background: linear-gradient(135deg, var(--acc), var(--acc2)); color: #1a0f00; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .send:disabled { opacity: .4; cursor: default; } .send svg { width: 20px; height: 20px; fill: currentColor; margin-left: 2px; }
   #ended { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 24px; }
-  @media (max-width: 760px) { .card { grid-template-columns: 1fr; } .pip { width: 32vw; right: 10px; top: 52px; bottom: auto; } }
-  /* phones / narrow screens: chat slides up over the picture */
+  /* ---------- phones, upright: picture, then chat (when open), then the buttons — stacked, never on top of each other ---------- */
   @media (max-width: 900px) {
-    #live, #live.nochat { grid-template-columns: 1fr; }
-    .chat { grid-column: 1; grid-row: 1; position: relative; z-index: 5; align-self: end; height: 62%; border-left: 0; border-top: 1px solid var(--line); border-radius: 18px 18px 0 0; box-shadow: 0 -20px 50px rgba(0,0,0,.6); }
-    #live.nochat .chat { display: none; } .chat-head .x { display: block; }
+    .card { grid-template-columns: 1fr; }
+    #live, #live.nochat { grid-template-areas: "top" "stage" "chat" "bar"; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto auto; }
+    .chat { border-left: 0; border-top: 1px solid var(--line); height: min(46dvh, 420px); } .chat-head .x { display: block; }
+    .vol { display: none; }
+  }
+  /* very small phones */
+  @media (max-width: 360px) { .top .ttl { display: none; } .bar { gap: 5px; } }
+  /* phones on their side: buttons become a column on the right, chat beside the picture */
+  @media (max-height: 520px) and (orientation: landscape) {
+    #live, #live.nochat { grid-template-areas: "top top bar" "stage chat bar"; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-rows: auto minmax(0, 1fr); padding-bottom: var(--sb); }
+    #live.nochat .chat { display: none; }
+    .chat { height: auto; width: min(42vw, 320px); border-top: 0; border-left: 1px solid var(--line); }
+    .bar { flex-direction: column; padding: 8px calc(8px + var(--sr)) 8px 8px; border-top: 0; border-left: 1px solid var(--line); justify-content: center; --btn: clamp(38px, 11vh, 48px); }
+    .rb.leave { width: var(--btn); height: calc(var(--btn) * 1.2); }
+    .top { min-height: 40px; padding: 5px 10px; } .quick { display: none; }
   }
 </style>
 </head>
@@ -95,16 +122,17 @@
       <div class="self"><video id="self" muted playsinline autoplay></video><div class="off hide" id="selfOff">Camera off</div></div>
       <div class="meter"><i id="lvl"></i></div>
       <div class="tip">🎧 Please wear <b>earphones or headphones</b> — then the church will not hear itself back through your phone.</div>
+      <div class="a2hs hide" id="a2hs"><span>📌</span><div><b>Save Nova Call to your home screen</b><br><span id="a2hsTxt">Next time it opens full screen and stays awake while you are live.</span></div><div class="x"><button class="go hide" id="a2hsGo">Add</button><button id="a2hsNo">Not now</button></div></div>
     </div>
     <div>
       <div class="brand"><img src="icon.png" alt=""><div><b>NOVA CALL</b><small>LIVE GUEST</small></div></div>
       <h1>Join the live service</h1>
       <p class="sub" id="who">You have been invited to appear live.</p>
       <label for="nm">Your name (shown to the producer)</label>
-      <input type="text" id="nm" maxlength="40" placeholder="e.g. Pastor Alex Acheampong">
+      <input type="text" id="nm" maxlength="40" placeholder="e.g. Pastor Alex Acheampong" autocomplete="name">
       <label for="cam">Camera</label><select id="cam"></select>
       <label for="mic">Microphone</label><select id="mic"></select>
-      <div style="display:flex;gap:10px;margin-top:18px"><button class="btn primary" id="go" style="flex:1">Join now</button></div>
+      <div style="display:flex;gap:10px;margin-top:16px"><button class="btn primary" id="go" style="flex:1">Join now</button></div>
       <div class="err" id="err"></div>
     </div>
   </div>
@@ -118,13 +146,17 @@
 </div>
 
 <div id="live" class="hide">
-  <div class="stage">
-    <video id="ret" playsinline autoplay></video>
-    <div class="nofeed" id="nofeed">You are connected.<br>The church picture will appear here.</div>
+  <div class="top">
     <div class="tally" id="tally">STANDBY</div>
-    <div class="net" id="net">●</div>
+    <div class="ttl" id="ttl">Nova Call<small id="ttlS">Tap the small picture to switch views</small></div>
+    <button class="hear hide" id="hear">🔊 Tap to hear the church</button>
+    <div class="net" id="net">◌ connecting</div>
+  </div>
+  <div class="stage" id="stage">
+    <video id="ret" class="main" playsinline autoplay></video>
+    <div class="pipbox c-br" id="pip"><video id="self2" class="pip mirror" muted playsinline autoplay></video><span class="lbl" id="pipLbl">YOU</span><span class="sw"><svg viewBox="0 0 24 24"><path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg></span></div>
+    <div class="nofeed" id="nofeed">You are connected.<br>The church picture will appear here.</div>
     <div class="msg hide" id="msg"></div>
-    <div class="pip" id="pip"><video id="self2" muted playsinline autoplay></video></div>
   </div>
   <aside class="chat" id="chat">
     <div class="chat-head"><div class="av">NS</div><div><b>Chat with the studio</b><small id="chatSt">● Producer online</small></div><button class="x" id="chatX" title="Close">✕</button></div>
@@ -136,8 +168,9 @@
     <button class="rb" id="bMic" title="Microphone"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
     <button class="rb" id="bCam" title="Camera"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/></svg></button>
     <button class="rb" id="bFlip" title="Switch camera"><svg viewBox="0 0 24 24"><path d="M4 7h3l2-2h6l2 2h3v12H4z"/><path d="M9 13a3 3 0 0 0 5.5 1.5M15 12a3 3 0 0 0-5.5-1.5"/></svg></button>
+    <button class="rb" id="bSpk" title="Church sound on / off"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path id="spkW" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg></button>
     <button class="rb on" id="bChat" title="Chat"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg><span class="badge" id="chatBadge"></span></button>
-    <div class="vol">🔊 <input type="range" id="vol" min="0" max="1" step="0.01" value="1"></div>
+    <div class="vol"><input type="range" id="vol" min="0" max="1" step="0.01" value="1" title="Church sound volume"></div>
     <button class="rb leave" title="Leave" onclick="leave()"><svg viewBox="0 0 24 24"><path d="M3 15c5-5 13-5 18 0l-2 3-4-1v-3a12 12 0 0 0-6 0v3l-4 1z"/></svg></button>
   </div>
 </div>
@@ -155,7 +188,7 @@ let ID = localStorage.getItem('novacall.id'); if (!ID) { ID = 'gu' + Math.random
 $('#nm').value = qs.get('n') || localStorage.getItem('novacall.name') || '';
 let lastTally = 'standby';
 let stream = null, peer = null, conn = null, pc = null, mc = null, admitted = false, micOn = true, camOn = true, facing = 'user', ICE = null, ended = false, msgT = 0;
-const show = id => ['join', 'wait', 'live', 'ended'].forEach(x => $('#' + x).classList.toggle('hide', x !== id));
+const show = id => { ['join', 'wait', 'live', 'ended'].forEach(x => $('#' + x).classList.toggle('hide', x !== id)); if (id === 'live') { keepAwake(true); playRet(); } if (id === 'ended') keepAwake(false); };
 if (!P || !G) { $('#err').textContent = 'This invite link is incomplete — ask the producer to send it again.'; $('#go').disabled = true; }
 
 async function openMedia() {
@@ -164,7 +197,7 @@ async function openMedia() {
   stream = await navigator.mediaDevices.getUserMedia({
     video: cam ? { deviceId: { exact: cam }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } } : { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
     audio: { deviceId: mic ? { exact: mic } : undefined, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-  $('#self').srcObject = stream; $('#self2').srcObject = stream;
+  $('#self').srcObject = stream; $('#self2').srcObject = stream; mirrorSelf();
   stream.getAudioTracks().forEach(t => t.enabled = micOn); stream.getVideoTracks().forEach(t => t.enabled = camOn);
   meter(stream);
   if (pc) for (const s of pc.getSenders()) { const nt = stream.getTracks().find(t => s.track && t.kind === s.track.kind); if (nt) await s.replaceTrack(nt).catch(() => {}); }
@@ -210,7 +243,7 @@ function connect(name) {
     if (!admitted || !call.metadata || call.metadata.kind !== 'novacall') { try { call.close(); } catch {} return; }
     if (mc) try { mc.close(); } catch {}
     mc = call; call.answer(stream);
-    call.on('stream', rs => { const v = $('#ret'); v.srcObject = rs; v.play().catch(() => {}); const vt = rs.getVideoTracks()[0]; if (vt) { if (!vt.muted) $('#nofeed').classList.add('hide'); vt.onunmute = () => $('#nofeed').classList.add('hide'); } });
+    call.on('stream', rs => { const v = $('#ret'); v.srcObject = rs; playRet(); const vt = rs.getVideoTracks()[0]; if (vt) { if (!vt.muted) $('#nofeed').classList.add('hide'); vt.onunmute = () => $('#nofeed').classList.add('hide'); } });
     const watch = () => { pc = call.peerConnection; if (!pc) return setTimeout(watch, 200);
       pc.addEventListener('connectionstatechange', () => { const s = pc.connectionState; $('#net').textContent = s === 'connected' ? '● Connected' : s === 'failed' ? '✕ Connection failed' : '◌ ' + s;
         $('#net').style.color = s === 'connected' ? '#4ade80' : s === 'failed' ? '#fca5a5' : '';
@@ -227,7 +260,7 @@ async function onMsg(m) {
   if (m.t === 'kick') return fail('The producer ended your call', 'Thank you for joining the service!');
   if (m.t === 'admitted') { ICE = m.ice || null; admitted = true; try { if (ICE) peer.options.config = { ...(peer.options.config || {}), iceServers: ICE }; } catch {} $('#waitT').textContent = 'Joining…'; return; }
   if (m.t === 'lobby') return;
-  if (m.t === 'tally') { const t = $('#tally'); t.className = 'tally ' + m.state; t.textContent = m.state === 'program' ? '● ON AIR' : m.state === 'preview' ? 'GET READY' : 'STANDBY'; $('#pip').className = 'pip ' + m.state; if (m.state !== lastTally && m.state !== 'standby') chatAdd('sys', m.state === 'program' ? 'You are ON AIR now' : 'Get ready — you are next'); lastTally = m.state; return; }
+  if (m.t === 'tally') { const t = $('#tally'); t.className = 'tally ' + m.state; t.textContent = m.state === 'program' ? '● ON AIR' : m.state === 'preview' ? 'GET READY' : 'STANDBY'; ['program', 'preview'].forEach(c => $('#pip').classList.toggle(c, m.state === c)); if (m.state !== lastTally && m.state !== 'standby') chatAdd('sys', m.state === 'program' ? 'You are ON AIR now' : 'Get ready — you are next'); lastTally = m.state; return; }
   if (m.t === 'chat') { chatAdd('them', m.text, m.from || 'Producer'); return; }
   if (m.t === 'msg') { chatAdd('them', m.text, 'Producer', true); const b = $('#msg'); b.innerHTML = ''; const s = document.createElement('small'); s.textContent = 'PRODUCER'; b.append(s, document.createTextNode(m.text)); b.classList.remove('hide'); clearTimeout(msgT); msgT = setTimeout(() => b.classList.add('hide'), Math.max(5000, m.text.length * 220)); try { navigator.vibrate && navigator.vibrate(120); } catch {} return; }
   if (m.t === 'mute') { setMic(!m.on); return; }
@@ -260,13 +293,77 @@ $('#quick').onclick = e => { const b = e.target.closest('button'); if (b) chatSe
 function setChat(open) { $('#live').classList.toggle('nochat', !open); $('#bChat').classList.toggle('on', open); if (open) { unread = 0; $('#bChat').classList.remove('has'); setTimeout(() => { $('#chatLog').scrollTop = 1e9; }, 50); } }
 $('#bChat').onclick = () => setChat(!chatOpen());
 $('#chatX').onclick = () => setChat(false);
-if (matchMedia('(max-width: 900px)').matches) setChat(false);
+if (matchMedia('(max-width: 900px), (max-height: 520px)').matches) setChat(false);
 function setMic(on) { micOn = on; stream && stream.getAudioTracks().forEach(t => t.enabled = on); $('#bMic').classList.toggle('off', !on); send({ t: 'state', mic: micOn, cam: camOn }); }
 function setCam(on) { camOn = on; stream && stream.getVideoTracks().forEach(t => t.enabled = on); $('#bCam').classList.toggle('off', !on); $('#selfOff').classList.toggle('hide', on); send({ t: 'state', mic: micOn, cam: camOn }); }
 $('#bMic').onclick = () => setMic(!micOn);
 $('#bCam').onclick = () => setCam(!camOn);
-$('#bFlip').onclick = async () => { facing = facing === 'user' ? 'environment' : 'user'; $('#cam').value = ''; await openMedia().catch(() => {}); };
+$('#bFlip').onclick = async () => { facing = facing === 'user' ? 'environment' : 'user'; $('#cam').value = ''; await openMedia().catch(() => {}); mirrorSelf(); };
 $('#vol').oninput = e => { $('#ret').volume = +e.target.value; };
+['loadeddata', 'playing'].forEach(ev => $('#ret').addEventListener(ev, () => { if ($('#ret').videoWidth && mainIs === 'studio') $('#nofeed').classList.add('hide'); }));
+// ---- church sound on / off (and the phone's autoplay rule) ----
+function playRet() {
+  const v = $('#ret'); if (!v.srcObject) return; v.muted = !spkOn;
+  v.play().then(() => $('#hear').classList.toggle('hide', !v.muted || !spkOn)).catch(() => { v.muted = true; v.play().catch(() => {}); if (spkOn) $('#hear').classList.remove('hide'); });
+}
+let spkOn = true;
+$('#hear').onclick = () => { spkOn = true; const v = $('#ret'); v.muted = false; v.play().then(() => $('#hear').classList.add('hide')).catch(() => {}); drawSpk(); };
+$('#bSpk').onclick = () => { spkOn = !spkOn; const v = $('#ret'); v.muted = !spkOn; if (spkOn) v.play().then(() => $('#hear').classList.add('hide')).catch(() => {}); else $('#hear').classList.add('hide'); drawSpk(); };
+function drawSpk() { $('#bSpk').classList.toggle('off', !spkOn); $('#spkW').style.display = spkOn ? '' : 'none'; }
+// ---- two views: the church big / me small — tap the small picture to swap; drag it to any corner ----
+let mainIs = 'studio';
+function mirrorSelf() { const front = facing === 'user'; $('#self2').classList.toggle('mirror', front); }
+function setView(which) {
+  mainIs = which; const ret = $('#ret'), me = $('#self2'), pip = $('#pip'), stage = $('#stage');
+  if (which === 'me') { stage.insertBefore(me, stage.firstChild); me.className = 'main' + (facing === 'user' ? ' mirror' : ''); me.muted = true; pip.insertBefore(ret, pip.firstChild); ret.className = 'pip'; $('#pipLbl').textContent = 'CHURCH'; }
+  else { stage.insertBefore(ret, stage.firstChild); ret.className = 'main'; pip.insertBefore(me, pip.firstChild); me.className = 'pip' + (facing === 'user' ? ' mirror' : ''); $('#pipLbl').textContent = 'YOU'; }
+  $('#nofeed').classList.toggle('hide', which === 'me' || !!(ret.srcObject && ret.videoWidth));
+  ret.play().catch(() => {}); me.play().catch(() => {});
+  $('#ttlS').textContent = which === 'me' ? 'You see yourself — tap the small picture for the church' : 'Tap the small picture to see yourself';
+}
+(() => {
+  const pip = $('#pip'); let sx = 0, sy = 0, moved = false, drag = false, ox = 0, oy = 0;
+  const corner = localStorage.getItem('novacall.corner') || 'c-br'; pip.classList.add(corner);
+  pip.addEventListener('pointerdown', e => { drag = true; moved = false; sx = e.clientX; sy = e.clientY; const r = pip.getBoundingClientRect(); ox = sx - r.left; oy = sy - r.top; pip.setPointerCapture(e.pointerId); });
+  pip.addEventListener('pointermove', e => { if (!drag) return; if (Math.hypot(e.clientX - sx, e.clientY - sy) > 8) moved = true; if (!moved) return;
+    const st = $('#stage').getBoundingClientRect(); pip.style.transition = 'none'; ['c-br', 'c-bl', 'c-tr', 'c-tl'].forEach(c => pip.classList.remove(c));
+    pip.style.left = Math.max(0, Math.min(st.width - pip.offsetWidth, e.clientX - st.left - ox)) + 'px'; pip.style.top = Math.max(0, Math.min(st.height - pip.offsetHeight, e.clientY - st.top - oy)) + 'px'; });
+  const up = e => { if (!drag) return; drag = false;
+    if (!moved) { setView(mainIs === 'studio' ? 'me' : 'studio'); return; }
+    const st = $('#stage').getBoundingClientRect(), r = pip.getBoundingClientRect(); const c = 'c-' + (r.top + r.height / 2 - st.top > st.height / 2 ? 'b' : 't') + (r.left + r.width / 2 - st.left > st.width / 2 ? 'r' : 'l');
+    pip.style.left = pip.style.top = ''; pip.style.transition = ''; pip.classList.add(c); localStorage.setItem('novacall.corner', c); };
+  pip.addEventListener('pointerup', up); pip.addEventListener('pointercancel', up);
+  // the small picture takes the shape of what is inside it (an upright phone camera stays upright)
+  const shape = () => { const v = pip.querySelector('video'); pip.classList.toggle('portrait', !!(v && v.videoHeight > v.videoWidth)); };
+  ['loadedmetadata', 'resize'].forEach(ev => { $('#self2').addEventListener(ev, shape); $('#ret').addEventListener(ev, shape); }); setInterval(shape, 2000);
+})();
+// ---- the screen never sleeps while you are live ----
+let wl = null, wantAwake = false;
+async function keepAwake(on) {
+  wantAwake = on;
+  if (!on) { try { wl && wl.release(); } catch {} wl = null; return; }
+  if ('wakeLock' in navigator) { try { wl = await navigator.wakeLock.request('screen'); wl.addEventListener('release', () => { wl = null; }); } catch {} }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && wantAwake && !wl) keepAwake(true); });
+// ---- first visit: save Nova Call to the home screen (opens full screen, stays awake) ----
+(() => {
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  // the installed app opens this same invite link
+  try { const u = new URL(location.href); u.searchParams.delete('auto'); const mf = { name: 'Nova Call', short_name: 'Nova Call', start_url: u.href, scope: u.origin + u.pathname.replace(/[^/]*$/, ''), display: 'standalone', background_color: '#0b0c10', theme_color: '#0b0c10',
+      icons: [{ src: new URL('icon.png', location.href).href, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }] };
+    const l = document.createElement('link'); l.rel = 'manifest'; l.href = URL.createObjectURL(new Blob([JSON.stringify(mf)], { type: 'application/manifest+json' })); document.head.append(l);
+    const ap = document.createElement('link'); ap.rel = 'apple-touch-icon'; ap.href = 'icon.png'; document.head.append(ap);
+    for (const [n, c] of [['apple-mobile-web-app-capable', 'yes'], ['mobile-web-app-capable', 'yes'], ['apple-mobile-web-app-title', 'Nova Call'], ['apple-mobile-web-app-status-bar-style', 'black-translucent']]) { const m = document.createElement('meta'); m.name = n; m.content = c; document.head.append(m); } } catch {}
+  if (standalone || localStorage.getItem('novacall.a2hs')) return;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent), card = $('#a2hs'); let ev = null;
+  const showCard = () => card.classList.remove('hide');
+  if (ios) { $('#a2hsTxt').innerHTML = 'Tap <b>Share</b> <span style="font-size:15px">⎙</span> then <b>Add to Home Screen</b>. Next time it opens full screen and stays awake.'; showCard(); }
+  else if (/android/i.test(navigator.userAgent)) { $('#a2hsTxt').innerHTML = 'Open the browser menu <b>⋮</b> → <b>Add to Home screen</b>. Next time it opens full screen and stays awake.'; showCard(); }
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); ev = e; $('#a2hsGo').classList.remove('hide'); $('#a2hsTxt').textContent = 'Next time it opens full screen and stays awake while you are live.'; showCard(); });
+  $('#a2hsGo').onclick = async () => { if (!ev) return; ev.prompt(); const r = await ev.userChoice.catch(() => ({})); if (r.outcome === 'accepted') { localStorage.setItem('novacall.a2hs', 'added'); card.classList.add('hide'); } };
+  $('#a2hsNo').onclick = () => { localStorage.setItem('novacall.a2hs', 'later'); card.classList.add('hide'); };
+  window.addEventListener('appinstalled', () => { localStorage.setItem('novacall.a2hs', 'added'); card.classList.add('hide'); });
+})();
 function fail(t, s) { if (ended) return; ended = true; cleanup(); $('#endT').textContent = t; $('#endS').textContent = s; show('ended'); }
 function cleanup() { try { mc && mc.close(); } catch {} try { pc && pc.close(); } catch {} pc = null; try { conn && conn.close(); } catch {} try { peer && peer.destroy(); } catch {} if (stream) stream.getTracks().forEach(t => t.stop()); an = null; }
 function leave() { send({ t: 'bye' }); ended = true; setTimeout(() => { cleanup(); $('#endT').textContent = 'You have left'; $('#endS').textContent = 'Thank you for joining.'; show('ended'); }, 150); }

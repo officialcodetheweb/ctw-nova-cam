@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b0c10">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nova Mic">
+<title>Nova Mic</title>
+<link rel="icon" href="icon.png"><link rel="apple-touch-icon" href="icon.png">
+<style>
+  :root { --bg: #08090c; --panel: #12141a; --panel2: #1a1d25; --line: #272b36; --text: #f3f4f6; --dim: #8f98ab; --acc: #ff7a18; --acc2: #ffb347; --green: #22c55e; --amber: #f59e0b; --red: #ef4444;
+    --st: env(safe-area-inset-top, 0px); --sb: env(safe-area-inset-bottom, 0px); --sl: env(safe-area-inset-left, 0px); --sr: env(safe-area-inset-right, 0px); }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: radial-gradient(120% 80% at 50% 0%, #1a1208 0%, var(--bg) 55%); color: var(--text); font: 15px/1.4 "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; overflow: hidden; overscroll-behavior: none; user-select: none; }
+  button, select { font: inherit; color: inherit; }
+  .hide { display: none !important; }
+  #app { position: fixed; inset: 0; height: 100dvh; display: grid; grid-template-areas: "top" "viz" "meter" "ctl"; grid-template-rows: auto minmax(0, 1fr) auto auto; padding: calc(8px + var(--st)) calc(14px + var(--sr)) calc(10px + var(--sb)) calc(14px + var(--sl)); gap: 10px; }
+  /* top */
+  .top { grid-area: top; display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .logo { width: 34px; height: 34px; border-radius: 10px; flex: none; }
+  .ttl { min-width: 0; flex: 1; } .ttl b { display: block; font-size: 15px; letter-spacing: .04em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ttl small { display: block; color: var(--dim); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pill { flex: none; padding: 6px 11px; border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: .08em; background: var(--panel2); border: 1px solid var(--line); white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+  .pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
+  .pill.ok i { background: var(--green); box-shadow: 0 0 10px var(--green); } .pill.bad i { background: var(--red); } .pill.wait i { background: var(--amber); animation: blink 1s infinite; }
+  .pill.air { background: var(--red); border-color: #ff7b85; color: #fff; animation: airpulse 1.6s ease-in-out infinite; } .pill.air i { background: #fff; }
+  @keyframes blink { 50% { opacity: .3; } } @keyframes airpulse { 50% { box-shadow: 0 0 0 7px rgba(239,68,68,.25); } }
+  /* visualiser */
+  .viz { grid-area: viz; position: relative; display: flex; align-items: center; justify-content: center; min-height: 0; }
+  #orb { width: 100%; height: 100%; display: block; }
+  .center { position: absolute; display: flex; flex-direction: column; align-items: center; pointer-events: none; text-align: center; }
+  .db { font-size: clamp(30px, 10vmin, 54px); font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.02em; line-height: 1; text-shadow: 0 4px 20px rgba(0,0,0,.6); }
+  .db small { font-size: .38em; font-weight: 700; color: var(--dim); margin-left: 3px; }
+  .lbl { font-size: 11px; letter-spacing: .14em; color: var(--dim); font-weight: 800; margin-top: 6px; }
+  .muted-big { color: var(--red); font-size: clamp(18px, 5vmin, 26px); font-weight: 900; letter-spacing: .12em; }
+  /* meter */
+  .meter { grid-area: meter; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px 8px; }
+  .mrow { display: flex; align-items: center; gap: 10px; }
+  .bar { position: relative; flex: 1; height: 16px; border-radius: 8px; background: #05060a; overflow: hidden; border: 1px solid #1f232c; }
+  .bar .fill { position: absolute; inset: 0; transform-origin: left; transform: scaleX(0); background: linear-gradient(90deg, #16a34a 0%, #22c55e 55%, #eab308 75%, #f97316 88%, #ef4444 100%); transition: transform .05s linear; }
+  .bar .mask { position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 5px, rgba(0,0,0,.5) 5px 6px); }
+  .bar .peak { position: absolute; top: 0; bottom: 0; width: 3px; background: #fff; border-radius: 2px; box-shadow: 0 0 8px #fff; left: 0; transition: left .08s; }
+  .clip { flex: none; font-size: 10px; font-weight: 900; letter-spacing: .08em; padding: 3px 7px; border-radius: 6px; background: #2a0d10; color: #6b2a30; border: 1px solid #3b1418; }
+  .clip.on { background: var(--red); color: #fff; border-color: #ff7b85; box-shadow: 0 0 14px rgba(239,68,68,.7); }
+  .scale { display: flex; justify-content: space-between; font-size: 9.5px; color: var(--dim); margin: 4px 50px 0 0; font-variant-numeric: tabular-nums; }
+  .hint { font-size: 12px; color: var(--dim); margin-top: 6px; text-align: center; min-height: 16px; }
+  .hint.warn { color: #fcd34d; } .hint.bad { color: #fca5a5; }
+  /* controls */
+  .ctl { grid-area: ctl; display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: stretch; }
+  .mute { align-self: center; height: auto; width: clamp(76px, 22vw, 96px); aspect-ratio: 1; border-radius: 50%; border: 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 11px; font-weight: 900; letter-spacing: .1em;
+    background: radial-gradient(circle at 35% 30%, #2b2f3a, #161921); box-shadow: inset 0 0 0 2px #2f3442, 0 10px 30px rgba(0,0,0,.5); color: #d1fae5; transition: transform .1s; }
+  .mute:active { transform: scale(.95); }
+  .mute svg { width: 40%; height: 40%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .mute.on { background: radial-gradient(circle at 35% 30%, #ff5a66, #b91c1c); box-shadow: inset 0 0 0 2px #ff8a93, 0 0 30px rgba(239,68,68,.5); color: #fff; }
+  .opts { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .opt { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 7px 10px; min-width: 0; }
+  .opt > span { font-size: 11px; font-weight: 800; letter-spacing: .06em; color: var(--dim); flex: none; text-transform: uppercase; }
+  .opt select { flex: 1; min-width: 0; background: transparent; border: 0; font-size: 14px; font-weight: 600; outline: none; }
+  .opt select option { background: var(--panel); }
+  .opt input[type=range] { flex: 1; min-width: 0; accent-color: var(--acc); }
+  .opt output { font-size: 12px; font-weight: 800; min-width: 44px; text-align: right; font-variant-numeric: tabular-nums; }
+  .sw { position: relative; width: 40px; height: 22px; flex: none; border-radius: 99px; background: #2a2f3b; border: 0; cursor: pointer; margin-left: auto; }
+  .sw::after { content: ''; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: #9aa3b5; transition: .2s; }
+  .sw.on { background: var(--acc); } .sw.on::after { left: 21px; background: #fff; }
+  /* start screen */
+  #start { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: calc(24px + var(--st)) 24px calc(24px + var(--sb)); text-align: center; background: radial-gradient(120% 80% at 50% 0%, #20160a 0%, var(--bg) 60%); }
+  #start img { width: 72px; height: 72px; border-radius: 20px; box-shadow: 0 20px 50px rgba(255,122,24,.25); }
+  #start h1 { margin: 0; font-size: clamp(22px, 6vw, 28px); } #start p { margin: 0; color: var(--dim); max-width: 380px; }
+  #start .go { margin-top: 6px; border: 0; border-radius: 16px; padding: 15px 34px; font-size: 17px; font-weight: 800; background: linear-gradient(135deg, var(--acc), var(--acc2)); color: #1a0f00; cursor: pointer; box-shadow: 0 14px 40px rgba(255,122,24,.35); }
+  .tips { display: grid; gap: 8px; max-width: 420px; width: 100%; text-align: left; margin-top: 4px; }
+  .tips div { background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; font-size: 13px; color: #cbd2de; }
+  .err { color: #fca5a5; font-size: 13px; min-height: 18px; }
+  #toast { position: fixed; left: 50%; top: calc(60px + var(--st)); transform: translateX(-50%); z-index: 20; background: #1f232d; border: 1px solid var(--line); padding: 9px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; opacity: 0; transition: opacity .25s; pointer-events: none; max-width: calc(100% - 30px); text-align: center; }
+  #toast.show { opacity: 1; }
+  /* phones on their side: visualiser left, meter + controls right */
+  @media (orientation: landscape) and (max-height: 560px) {
+    #app { grid-template-areas: "top top" "viz meter" "viz ctl"; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); grid-template-rows: auto auto minmax(0, 1fr); }
+    .ctl { align-content: start; } .mute { width: clamp(64px, 18vh, 84px); }
+  }
+  @media (max-height: 600px) and (orientation: portrait) { .opt { padding: 5px 9px; } .meter { padding: 8px 10px 6px; } }
+</style>
+</head>
+<body>
+<div id="start">
+  <img src="icon.png" alt="">
+  <h1>Nova Mic</h1>
+  <p>This phone becomes a wireless microphone for Nova Studio.</p>
+  <div class="tips">
+    <div>🎙️ <b>Plug in your lavalier mic first</b> (headphone jack or USB-C adapter), then press Start.</div>
+    <div>🔕 Turn on <b>Do Not Disturb</b> so calls and notifications don’t interrupt the sound.</div>
+    <div>🔋 Keep the phone <b>charging</b> for long services. The screen stays on by itself.</div>
+  </div>
+  <button class="go" id="go">Start microphone</button>
+  <div class="err" id="err"></div>
+</div>
+
+<div id="app" class="hide">
+  <div class="top">
+    <img class="logo" src="icon.png" alt="">
+    <div class="ttl"><b id="name">Nova Mic</b><small id="sub">Connecting to Nova Studio…</small></div>
+    <div class="pill wait" id="link"><i></i><span id="linkT">LINKING</span></div>
+  </div>
+  <div class="viz"><canvas id="orb"></canvas>
+    <div class="center"><div class="db" id="dbv">-∞<small>dB</small></div><div class="lbl" id="dbl">LEVEL</div></div>
+  </div>
+  <div class="meter">
+    <div class="mrow"><div class="bar"><div class="fill" id="fill"></div><div class="mask"></div><div class="peak" id="peak"></div></div><div class="clip" id="clip">CLIP</div></div>
+    <div class="scale"><span>-60</span><span>-40</span><span>-24</span><span>-12</span><span>-6</span><span>0</span></div>
+    <div class="hint" id="hint">Speak into the microphone to check the level</div>
+  </div>
+  <div class="ctl">
+    <button class="mute" id="mute"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/><path id="slash" d="M4 4l16 16" style="display:none"/></svg><span id="muteT">LIVE</span></button>
+    <div class="opts">
+      <label class="opt"><span>Mic</span><select id="dev"></select></label>
+      <div class="opt"><span>Boost</span><input type="range" id="gain" min="0" max="18" step="1" value="0"><output id="gainV">0 dB</output></div>
+      <div class="opt"><span>Noise reduction</span><button class="sw" id="ns" title="Noise reduction"></button></div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const qs = new URLSearchParams(location.search);
+// LOCAL: page from the studio PC (wss link).  CLOUD: page from the website — studio found through PeerJS.
+const LOCAL = location.pathname === '/mic' && !qs.get('p');
+const K = qs.get('k') || localStorage.getItem('novamic.k') || ''; if (qs.get('k')) localStorage.setItem('novamic.k', qs.get('k'));
+const P = LOCAL ? '' : (qs.get('p') || localStorage.getItem('novamic.p') || ''); if (qs.get('p')) localStorage.setItem('novamic.p', qs.get('p'));
+const SRV = qs.get('s') ?? localStorage.getItem('novamic.s') ?? ''; if (qs.get('s') != null) localStorage.setItem('novamic.s', qs.get('s'));
+const peerOpts = s => { if (!s) return { debug: 0 }; try { const u = new URL(/^https?:/.test(s) ? s : 'https://' + s); return { debug: 0, host: u.hostname, port: +u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname || '/', secure: u.protocol === 'https:' }; } catch { return { debug: 0 }; } };
+// the QR code carries the input's own ID, so this phone pairs with exactly that "Phone Microphone" input in Nova Studio
+let ID = qs.get('id') || localStorage.getItem('novamic.id'); if (!ID || !/^mic[\w-]+$/.test(ID)) ID = 'mic' + Math.random().toString(36).slice(2, 10); localStorage.setItem('novamic.id', ID);
+const S = { name: localStorage.getItem('novamic.name') || 'Phone mic', dev: localStorage.getItem('novamic.dev') || '', gain: +(localStorage.getItem('novamic.gain') || 0), ns: localStorage.getItem('novamic.ns') === '1', muted: false, tally: 'standby', mode: 'rtc', pcName: '' };
+let raw = null, actx = null, src = null, gainN = null, dest = null, an = null, ws = null, pc = null, SID = '', retry = 0, wl = null;
+const toast = (t, ms = 2200) => { const e = $('#toast'); e.textContent = t; e.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('show'), ms); };
+
+// ---------- microphone ----------
+async function openMic() {
+  if (raw) raw.getTracks().forEach(t => t.stop());
+  raw = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: S.dev ? { exact: S.dev } : undefined, echoCancellation: false, noiseSuppression: S.ns, autoGainControl: false, channelCount: 1, sampleRate: 48000 }, video: false });
+  actx = actx || new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+  if (actx.state !== 'running') await actx.resume().catch(() => {});
+  if (src) try { src.disconnect(); } catch {}
+  src = actx.createMediaStreamSource(raw);
+  if (!gainN) { gainN = actx.createGain(); an = actx.createAnalyser(); an.fftSize = 2048; an.smoothingTimeConstant = 0.72; dest = actx.createMediaStreamDestination(); gainN.connect(an); gainN.connect(dest); }
+  src.connect(gainN); applyGain();
+  // the processed sound (with boost) is what goes to the studio
+  const track = dest.stream.getAudioTracks()[0];
+  if (pc) for (const s of pc.getSenders()) if (s.track && s.track.kind === 'audio') await s.replaceTrack(track).catch(() => {});
+  await listDevs(); const at = raw.getAudioTracks()[0]; const lab = at ? at.label : '';
+  $('#dbl').textContent = (lab.length > 28 ? lab.slice(0, 26) + '…' : lab || 'MICROPHONE').toUpperCase();
+  if (pcm.sp) { pcmStop(); pcmStart(); }
+}
+function applyGain() { if (!gainN) return; gainN.gain.setTargetAtTime(S.muted ? 0 : Math.pow(10, S.gain / 20), actx.currentTime, 0.02); }
+async function listDevs() {
+  const ds = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput');
+  const sel = $('#dev'); sel.innerHTML = '';
+  ds.forEach((d, i) => { const o = document.createElement('option'); o.value = d.deviceId; o.textContent = d.label || 'Microphone ' + (i + 1); sel.append(o); });
+  const cur = raw && raw.getAudioTracks()[0] && raw.getAudioTracks()[0].getSettings().deviceId; sel.value = S.dev || cur || '';
+}
+navigator.mediaDevices && navigator.mediaDevices.addEventListener && navigator.mediaDevices.addEventListener('devicechange', async () => { await listDevs(); toast('A microphone was plugged in or out'); });
+$('#dev').onchange = async e => { S.dev = e.target.value; localStorage.setItem('novamic.dev', S.dev); try { await openMic(); toast('Microphone changed'); } catch (er) { toast('Could not open that microphone'); } };
+$('#gain').value = S.gain; $('#gainV').textContent = '+' + S.gain + ' dB';
+$('#gain').oninput = e => { S.gain = +e.target.value; localStorage.setItem('novamic.gain', S.gain); $('#gainV').textContent = '+' + S.gain + ' dB'; applyGain(); };
+$('#ns').classList.toggle('on', S.ns);
+$('#ns').onclick = async () => { S.ns = !S.ns; localStorage.setItem('novamic.ns', S.ns ? '1' : '0'); $('#ns').classList.toggle('on', S.ns); await openMic().catch(() => {}); toast(S.ns ? 'Noise reduction on' : 'Noise reduction off — natural sound'); };
+function setMute(m, quiet) { S.muted = m; applyGain(); $('#mute').classList.toggle('on', m); $('#slash').style.display = m ? '' : 'none'; $('#muteT').textContent = m ? 'MUTED' : 'LIVE'; if (!quiet) send({ t: 'state', mic: !m }); if (navigator.vibrate) navigator.vibrate(30); }
+$('#mute').onclick = () => setMute(!S.muted);
+
+// ---------- the sound monitor ----------
+const cv = $('#orb'), cx = cv.getContext('2d'); const fbuf = new Float32Array(2048), freq = new Uint8Array(1024);
+const showDb = { v: -90, at: 0 };
+let peakDb = -90, peakAt = 0, clipAt = 0, smooth = 0, silentSince = performance.now(), lastLevel = -90;
+const toPct = db => Math.max(0, Math.min(1, (db + 60) / 60));
+function draw() {
+  requestAnimationFrame(draw);
+  const W = cv.clientWidth, H = cv.clientHeight, dpr = Math.min(2, devicePixelRatio || 1); if (cv.width !== W * dpr || cv.height !== H * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
+  cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.clearRect(0, 0, W, H);
+  let pk = 0, ss = 0;
+  if (an) { an.getFloatTimeDomainData(fbuf); for (let i = 0; i < fbuf.length; i++) { const a = Math.abs(fbuf[i]); if (a > pk) pk = a; ss += fbuf[i] * fbuf[i]; } an.getByteFrequencyData(freq); }
+  const now = performance.now(), db = 20 * Math.log10(pk || 1e-6), rms = 10 * Math.log10(ss / fbuf.length || 1e-9);
+  lastLevel = S.muted ? -90 : db;
+  if (db > peakDb || now - peakAt > 1400) { peakDb = db; peakAt = now; }
+  if (db > -1 && !S.muted) clipAt = now;
+  const lvl = S.muted ? 0 : toPct(rms + 6); smooth += (lvl - smooth) * (lvl > smooth ? 0.5 : 0.12);
+  // orb
+  const R = Math.min(W, H) * 0.30, X = W / 2, Y = H / 2, hot = now - clipAt < 800;
+  const col = S.muted ? [120, 120, 130] : hot ? [239, 68, 68] : smooth > 0.78 ? [245, 158, 11] : [34, 197, 94];
+  const glow = cx.createRadialGradient(X, Y, R * 0.3, X, Y, R * (1.65 + smooth * 0.5));
+  glow.addColorStop(0, `rgba(${col},${0.20 + smooth * 0.35})`); glow.addColorStop(1, 'rgba(0,0,0,0)'); cx.fillStyle = glow; cx.beginPath(); cx.arc(X, Y, R * 2.4, 0, 7); cx.fill();
+  // frequency bars around the circle (voice range spread around the ring, mirrored)
+  const N = 72, rot = now / 9000;
+  for (let i = 0; i < N; i++) {
+    const k = i < N / 2 ? i : N - 1 - i, bin = Math.floor(2 + Math.pow(k / (N / 2), 1.7) * 220); const v = S.muted ? 0 : (freq[bin] || 0) / 255;
+    const a = rot + (i / N) * Math.PI * 2, r0 = R * 1.06, len = 4 + v * R * 0.75;
+    cx.strokeStyle = `rgba(${col},${0.35 + v * 0.65})`; cx.lineWidth = Math.max(2, R * 0.045); cx.lineCap = 'round';
+    cx.beginPath(); cx.moveTo(X + Math.cos(a) * r0, Y + Math.sin(a) * r0); cx.lineTo(X + Math.cos(a) * (r0 + len), Y + Math.sin(a) * (r0 + len)); cx.stroke();
+  }
+  // breathing core
+  const core = cx.createRadialGradient(X - R * 0.3, Y - R * 0.35, R * 0.1, X, Y, R);
+  core.addColorStop(0, '#2a2f3b'); core.addColorStop(1, '#10131a'); cx.fillStyle = core; cx.beginPath(); cx.arc(X, Y, R * (0.96 + smooth * 0.06), 0, 7); cx.fill();
+  cx.lineWidth = 3; cx.strokeStyle = `rgba(${col},${0.5 + smooth * 0.5})`; cx.beginPath(); cx.arc(X, Y, R * (0.96 + smooth * 0.06), -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * smooth); cx.stroke();
+  // live waveform inside the core
+  if (an && !S.muted) { cx.save(); cx.beginPath(); cx.arc(X, Y, R * 0.9, 0, 7); cx.clip(); cx.strokeStyle = `rgba(${col},.55)`; cx.lineWidth = 2; cx.beginPath();
+    for (let i = 0; i < 128; i++) { const s = fbuf[i * 16] || 0, x = X - R * 0.85 + (i / 127) * R * 1.7, y = Y + R * 0.52 + s * R * 0.9 * Math.min(4, 1 + S.gain / 6); i ? cx.lineTo(x, y) : cx.moveTo(x, y); } cx.stroke(); cx.restore(); }
+  // numbers & meter
+  if (db > showDb.v || now - showDb.at > 350) { showDb.v = db; showDb.at = now; }   // hold the number briefly so it reads steadily
+  $('#dbv').innerHTML = S.muted ? '<span class="muted-big">MUTED</span>' : (showDb.v < -80 ? '-∞' : Math.round(showDb.v)) + '<small>dB</small>';
+  $('#fill').style.transform = `scaleX(${S.muted ? 0 : toPct(db).toFixed(3)})`; $('#peak').style.left = `calc(${(toPct(peakDb) * 100).toFixed(1)}% - 3px)`;
+  $('#clip').classList.toggle('on', hot);
+  const hint = $('#hint'); if (db > -50) silentSince = now;
+  if (S.muted) { hint.className = 'hint bad'; hint.textContent = 'Muted — the studio hears nothing'; }
+  else if (hot) { hint.className = 'hint bad'; hint.textContent = 'Too loud — move the mic a little away or lower the Boost'; }
+  else if (now - silentSince > 6000) { hint.className = 'hint warn'; hint.textContent = 'No sound — is the lavalier plugged in and chosen under Mic?'; }
+  else if (db > -30) { hint.className = 'hint'; hint.textContent = 'Good level ✓'; }
+  else { hint.className = 'hint'; hint.textContent = 'Speak into the microphone to check the level'; }
+}
+
+// ---------- link to Nova Studio ----------
+function setLink(state, text) { const p = $('#link'); p.className = 'pill ' + (state === 'air' ? 'air' : state); $('#linkT').textContent = text; }
+function linkUp() { retry = 0; setLink('ok', 'READY'); setTally(S.tally); sendStatus(); }
+function linkDown(denied, why) {
+  stopRtc(); pcmStop(); setLink(denied ? 'bad' : 'wait', denied ? 'NOT ALLOWED' : 'RECONNECTING');
+  $('#sub').textContent = denied ? (why || 'Scan the QR code in Nova Studio again') : 'Lost the studio — reconnecting…';
+  if (denied) return; retry++; clearTimeout(linkDown.t); linkDown.t = setTimeout(connect, Math.min(6000, 1000 + retry * 800));
+}
+function connect() { if (ws && (ws.readyState === 0 || ws.readyState === 1)) return; if (LOCAL) connectLocal(); else connectCloud(); }
+function connectLocal() {
+  const sock = ws = new WebSocket(`wss://${location.host}/ws/cam?k=${encodeURIComponent(K)}&id=${ID}&name=${encodeURIComponent(S.name)}`); ws.binaryType = 'arraybuffer';
+  ws.onopen = linkUp; ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch { return; } onMsg(m); };
+  ws.onclose = ev => { if (ws === sock) linkDown(ev.code === 4003); }; ws.onerror = () => {};
+}
+let peer = null;
+function loadPeerJs() { return window.Peer ? Promise.resolve() : new Promise((ok, bad) => { const sc = document.createElement('script'); sc.src = 'peerjs.min.js'; sc.onload = ok; sc.onerror = () => bad(new Error('peerjs')); document.head.append(sc); }); }
+async function connectCloud() {
+  try { await loadPeerJs(); } catch { linkDown(false); return; }
+  ws = { readyState: 3, bufferedAmount: 0, send() {} };
+  const go = () => {
+    const conn = peer.connect(P, { reliable: true, serialization: 'binary', metadata: { k: K, id: ID, name: S.name, kind: 'cam' } }); let opened = false;
+    const w = { readyState: 0, get bufferedAmount() { return conn.dataChannel ? conn.dataChannel.bufferedAmount : 0; }, send: d => conn.send(d), conn }; ws = w;
+    const to = setTimeout(() => { if (!opened) try { conn.close(); } catch {} }, 12000);
+    conn.on('open', () => { opened = true; clearTimeout(to); w.readyState = 1; linkUp(); });
+    conn.on('data', d => { if (d && d.t === 'denied') { w.denied = true; return; } onMsg(d); });
+    conn.on('close', () => { clearTimeout(to); if (ws === w) { w.readyState = 3; linkDown(!!w.denied, w.denied ? 'Not allowed — scan the QR code in Nova Studio again' : ''); } });
+    conn.on('error', () => {});
+  };
+  if (peer && !peer.destroyed && peer.open) return go();
+  if (peer) try { peer.destroy(); } catch {}
+  peer = new Peer(peerOpts(SRV)); peer.on('open', go);
+  peer.on('error', e => { if (e.type === 'peer-unavailable') { if (ws && ws.conn) try { ws.conn.close(); } catch {} else linkDown(false); } else if (['network', 'server-error', 'socket-error', 'socket-closed'].includes(e.type)) { try { peer.destroy(); } catch {} peer = null; if (!ws || ws.readyState !== 1) linkDown(false); } });
+  peer.on('disconnected', () => { try { peer.reconnect(); } catch {} });
+}
+const send = m => { if (ws && ws.readyState === 1) ws.send(LOCAL ? JSON.stringify(m) : m); };
+function setTally(st) {
+  S.tally = st || 'standby'; if (!ws || ws.readyState !== 1) return;
+  if (S.tally === 'program') { setLink('air', 'ON AIR'); } else setLink('ok', S.mode === 'jpeg' ? 'READY · BACKUP LINK' : 'READY');
+  $('#sub').textContent = `${S.pcName ? 'Connected to ' + S.pcName : 'Connected to Nova Studio'}${S.mode === 'jpeg' ? ' · backup link' : ''}`;
+}
+async function onMsg(m) {
+  if (!m || !m.t) return;
+  switch (m.t) {
+    case 'offer': SID = m.sid || ''; await startRtc(m.sdp); break;
+    case 'ice': if (pc && m.c && (!m.sid || m.sid === SID)) pc.addIceCandidate(m.c).catch(() => {}); break;
+    case 'mode': S.mode = m.mode; if (m.mode === 'jpeg') { stopRtc(); pcmStart(); } else pcmStop(); setTally(S.tally); break;
+    case 'tally': setTally(m.state); break;
+    case 'name': if (m.name) { S.name = m.name; localStorage.setItem('novamic.name', m.name); $('#name').textContent = m.name; } S.pcName = m.pc || S.pcName; setTally(S.tally); break;
+    case 'mute': setMute(!!m.on, true); break;
+    case 'identify': toast('This is ' + S.name); if (navigator.vibrate) navigator.vibrate(300); break;
+  }
+}
+// high-quality voice: ask the phone's encoder for up to 128 kbit/s Opus, no silence-dropping
+const hiQ = sdp => sdp.replace(/a=fmtp:(\d+) (.*useinbandfec=1.*)/g, (l, pt, p) => /maxaveragebitrate/.test(p) ? l : `a=fmtp:${pt} ${p};maxaveragebitrate=128000;usedtx=0`);
+async function startRtc(sdp) {
+  stopRtc(); pcmStop();
+  pc = new RTCPeerConnection({ iceServers: LOCAL ? [] : [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }, { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' }] });
+  const mySid = SID; pc.onicecandidate = e => { if (e.candidate) send({ t: 'ice', c: e.candidate.toJSON ? e.candidate.toJSON() : e.candidate, sid: mySid }); };
+  pc.onconnectionstatechange = () => { if (pc && pc.connectionState === 'failed') send({ t: 'rtc-failed', sid: SID }); if (pc && pc.connectionState === 'connected') { S.mode = 'rtc'; setTally(S.tally); } };
+  const track = dest.stream.getAudioTracks()[0]; pc.addTrack(track, dest.stream);
+  await pc.setRemoteDescription({ type: 'offer', sdp: hiQ(sdp) });
+  const ans = await pc.createAnswer(); ans.sdp = hiQ(ans.sdp); await pc.setLocalDescription(ans);
+  send({ t: 'answer', sdp: pc.localDescription.sdp, sid: SID });
+  const s = pc.getSenders().find(x => x.track && x.track.kind === 'audio');
+  if (s && s.getParameters) { try { const p = s.getParameters(); p.encodings = p.encodings && p.encodings.length ? p.encodings : [{}]; p.encodings[0].maxBitrate = 128000; p.encodings[0].priority = 'high'; p.encodings[0].networkPriority = 'high'; await s.setParameters(p); } catch {} }
+}
+function stopRtc() { if (pc) { try { pc.close(); } catch {} pc = null; } }
+// backup link: when the direct link is blocked, the sound goes as small PCM packets over the normal link
+const pcm = { sp: null, mute: null, frac: 0, rate: 32000 };
+function pcmStart() {
+  if (pcm.sp || !actx || !gainN) return;
+  const sp = pcm.sp = actx.createScriptProcessor(2048, 1, 1); const mute = pcm.mute = actx.createGain(); mute.gain.value = 0;
+  gainN.connect(sp); sp.connect(mute); mute.connect(actx.destination); pcm.frac = 0;
+  sp.onaudioprocess = e => {
+    if (!ws || ws.readyState !== 1 || ws.bufferedAmount > 2e6) return;
+    const x = e.inputBuffer.getChannelData(0), ratio = actx.sampleRate / pcm.rate, n = Math.floor((x.length - pcm.frac) / ratio); if (n <= 0) return;
+    const out = new ArrayBuffer(8 + n * 2), dv = new DataView(out); dv.setUint8(0, 0x4e); dv.setUint8(1, 0x41); dv.setUint8(2, 0x55); dv.setUint8(3, 0x31); dv.setUint16(4, pcm.rate / 10, true);
+    for (let i = 0; i < n; i++) { const p = pcm.frac + i * ratio, k = p | 0, t = p - k, a = x[k], b = k + 1 < x.length ? x[k + 1] : a; let v = a + (b - a) * t; v = v > 1 ? 1 : v < -1 ? -1 : v; dv.setInt16(8 + i * 2, v * 32767, true); }
+    pcm.frac = pcm.frac + n * ratio - x.length; try { ws.send(out); } catch {}
+  };
+}
+function pcmStop() { if (!pcm.sp) return; try { pcm.sp.onaudioprocess = null; gainN.disconnect(pcm.sp); pcm.sp.disconnect(); pcm.mute.disconnect(); } catch {} pcm.sp = pcm.mute = null; }
+// health for the studio (battery, link quality, level)
+let battery = null; try { navigator.getBattery && navigator.getBattery().then(b => { battery = b; }); } catch {}
+function sendStatus() { send({ t: 'status', q: pc && pc.connectionState === 'connected' ? 4 : S.mode === 'jpeg' ? 2 : 3, battery: battery ? Math.round(battery.level * 100) : null, charging: battery ? battery.charging : null, mode: S.mode, level: Math.round(lastLevel), mic: !S.muted }); }
+setInterval(() => { if (ws && ws.readyState === 1) { sendStatus(); send({ t: 'ping', ts: Date.now() }); } }, 3000);
+if (battery) battery.addEventListener('levelchange', () => { if (battery.level < 0.15 && !battery.charging) toast('Battery low — plug in the charger'); });
+
+// ---------- the screen never sleeps ----------
+async function keepAwake() { try { if ('wakeLock' in navigator && !wl) { wl = await navigator.wakeLock.request('screen'); wl.addEventListener('release', () => { wl = null; }); } } catch {} }
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { keepAwake(); if (actx && actx.state !== 'running') actx.resume().catch(() => {}); } });
+addEventListener('pointerdown', () => { if (actx && actx.state !== 'running') actx.resume().catch(() => {}); }, { capture: true });
+
+// ---------- start ----------
+$('#name').textContent = S.name;
+$('#go').onclick = async () => {
+  $('#err').textContent = '';
+  if (!LOCAL && !P) { $('#err').textContent = 'This link is incomplete — scan the QR code in Nova Studio again.'; return; }
+  try { await openMic(); } catch (e) { $('#err').textContent = 'Allow the microphone to continue (' + (e.name || e.message) + ').'; return; }
+  $('#start').classList.add('hide'); $('#app').classList.remove('hide'); keepAwake(); draw(); connect();
+};
+if (qs.get('auto') === '1') setTimeout(() => $('#go').click(), 600);
+</script>
+</body>
+</html>
