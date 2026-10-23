@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0c10">
+<title>Nova Call — join the live service</title>
+<link rel="icon" href="icon.png">
+<style>
+  :root { --bg: #0b0c10; --panel: #14161c; --panel2: #1b1e26; --line: #2a2e38; --text: #f3f4f6; --dim: #9aa3b5; --acc: #ff7a18; --acc2: #ffb347; --red: #e11d2e; --green: #22c55e; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 15px/1.4 "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; }
+  button, input, select { font: inherit; color: inherit; }
+  .btn { border: 1px solid var(--line); background: var(--panel2); border-radius: 12px; padding: 11px 18px; font-weight: 700; cursor: pointer; }
+  .btn.primary { background: linear-gradient(135deg, var(--acc), var(--acc2)); border: 0; color: #1a0f00; }
+  .btn.danger { background: var(--red); border: 0; color: #fff; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .hide { display: none !important; }
+  /* join */
+  #join { min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .card { width: min(880px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 22px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 22px; box-shadow: 0 30px 80px rgba(0,0,0,.5); }
+  .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; } .brand img { width: 34px; height: 34px; border-radius: 9px; } .brand b { letter-spacing: .08em; font-size: 13px; } .brand small { color: var(--acc); font-weight: 800; font-size: 11px; letter-spacing: .14em; display: block; }
+  h1 { font-size: 24px; margin: 6px 0 4px; } .sub { color: var(--dim); margin: 0 0 16px; }
+  .self { position: relative; aspect-ratio: 16/9; border-radius: 14px; overflow: hidden; background: #000; border: 1px solid var(--line); }
+  .self video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+  .self .off { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--dim); }
+  .meter { height: 6px; background: #000; border-radius: 4px; overflow: hidden; margin-top: 8px; } .meter i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--green), #eab308, var(--red)); transition: width .08s; }
+  label { display: block; color: var(--dim); font-size: 12px; font-weight: 700; letter-spacing: .04em; margin: 12px 0 5px; text-transform: uppercase; }
+  input[type=text], select { width: 100%; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .tip { background: rgba(255,122,24,.1); border: 1px solid rgba(255,122,24,.35); border-radius: 10px; padding: 9px 12px; font-size: 13px; color: #ffd1a8; margin-top: 14px; }
+  .err { color: #fca5a5; font-size: 13px; min-height: 18px; margin-top: 8px; }
+  /* waiting */
+  #wait { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 24px; background: radial-gradient(circle at 50% 30%, #1d1306, var(--bg) 60%); }
+  .spin { width: 54px; height: 54px; border-radius: 50%; border: 4px solid rgba(255,122,24,.2); border-top-color: var(--acc); animation: sp 1s linear infinite; } @keyframes sp { to { transform: rotate(360deg); } }
+  /* live */
+  #live { position: fixed; inset: 0; display: flex; flex-direction: column; }
+  .stage { position: relative; flex: 1; background: #000; min-height: 0; }
+  .stage > video { width: 100%; height: 100%; object-fit: contain; }
+  .stage .nofeed { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--dim); text-align: center; padding: 20px; }
+  .pip { position: absolute; right: 14px; bottom: 14px; width: min(30vw, 260px); aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; border: 3px solid #555; background: #000; box-shadow: 0 10px 30px rgba(0,0,0,.6); }
+  .pip video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+  .pip.program { border-color: var(--red); } .pip.preview { border-color: var(--green); }
+  .tally { position: absolute; left: 14px; top: 14px; padding: 7px 14px; border-radius: 999px; font-weight: 900; letter-spacing: .12em; font-size: 13px; background: rgba(0,0,0,.65); border: 1px solid #444; }
+  .tally.program { background: var(--red); border-color: #ff6b77; animation: pulse 1.6s ease-in-out infinite; } .tally.preview { background: #15803d; border-color: #4ade80; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 8px rgba(225,29,46,.25); } }
+  .msg { position: absolute; left: 50%; top: 16px; transform: translateX(-50%); max-width: min(90vw, 640px); background: rgba(20,22,28,.94); border: 1px solid var(--acc); border-radius: 14px; padding: 12px 18px; font-size: 18px; font-weight: 700; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+  .msg small { display: block; color: var(--acc); font-size: 11px; letter-spacing: .14em; margin-bottom: 2px; }
+  .net { position: absolute; right: 14px; top: 14px; font-size: 12px; color: var(--dim); background: rgba(0,0,0,.55); padding: 5px 10px; border-radius: 999px; }
+  .bar { display: flex; gap: 10px; justify-content: center; align-items: center; padding: 12px; background: var(--panel); border-top: 1px solid var(--line); flex-wrap: wrap; }
+  .rb { width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel2); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .rb svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .rb.off { background: #3b0d12; border-color: var(--red); color: #fca5a5; } .rb.leave { background: var(--red); border-color: var(--red); width: 64px; border-radius: 26px; }
+  .vol { display: flex; align-items: center; gap: 8px; color: var(--dim); font-size: 12px; } .vol input { width: 110px; accent-color: var(--acc); }
+  #chatBox { position: absolute; left: 14px; bottom: 14px; width: min(360px, 60vw); display: flex; flex-direction: column; gap: 6px; }
+  #chatLog { max-height: 30vh; overflow: auto; display: flex; flex-direction: column; gap: 4px; } #chatLog div { background: rgba(0,0,0,.65); border-radius: 10px; padding: 6px 10px; font-size: 13px; } #chatLog b { color: var(--acc); }
+  #chatIn { background: rgba(0,0,0,.7); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+  #ended { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 24px; }
+  @media (max-width: 760px) { .card { grid-template-columns: 1fr; } .pip { width: 34vw; } }
+</style>
+</head>
+<body>
+<div id="join">
+  <div class="card">
+    <div>
+      <div class="self"><video id="self" muted playsinline autoplay></video><div class="off hide" id="selfOff">Camera off</div></div>
+      <div class="meter"><i id="lvl"></i></div>
+      <div class="tip">🎧 Please wear <b>earphones or headphones</b> — then the church will not hear itself back through your phone.</div>
+    </div>
+    <div>
+      <div class="brand"><img src="icon.png" alt=""><div><b>NOVA CALL</b><small>LIVE GUEST</small></div></div>
+      <h1>Join the live service</h1>
+      <p class="sub" id="who">You have been invited to appear live.</p>
+      <label for="nm">Your name (shown to the producer)</label>
+      <input type="text" id="nm" maxlength="40" placeholder="e.g. Pastor Alex Acheampong">
+      <label for="cam">Camera</label><select id="cam"></select>
+      <label for="mic">Microphone</label><select id="mic"></select>
+      <div style="display:flex;gap:10px;margin-top:18px"><button class="btn primary" id="go" style="flex:1">Join now</button></div>
+      <div class="err" id="err"></div>
+    </div>
+  </div>
+</div>
+
+<div id="wait" class="hide">
+  <div class="spin"></div>
+  <h2 style="margin:0" id="waitT">Connecting to the studio…</h2>
+  <p class="sub" id="waitS" style="max-width:420px">Keep this page open.</p>
+  <button class="btn" onclick="leave()">Cancel</button>
+</div>
+
+<div id="live" class="hide">
+  <div class="stage">
+    <video id="ret" playsinline autoplay></video>
+    <div class="nofeed" id="nofeed">You are connected.<br>The church picture will appear here.</div>
+    <div class="tally" id="tally">STANDBY</div>
+    <div class="net" id="net">●</div>
+    <div class="msg hide" id="msg"></div>
+    <div id="chatBox"><div id="chatLog"></div><input id="chatIn" placeholder="Message the producer… (Enter)" maxlength="200"></div>
+    <div class="pip" id="pip"><video id="self2" muted playsinline autoplay></video></div>
+  </div>
+  <div class="bar">
+    <button class="rb" id="bMic" title="Microphone"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+    <button class="rb" id="bCam" title="Camera"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/></svg></button>
+    <button class="rb" id="bFlip" title="Switch camera"><svg viewBox="0 0 24 24"><path d="M4 7h3l2-2h6l2 2h3v12H4z"/><path d="M9 13a3 3 0 0 0 5.5 1.5M15 12a3 3 0 0 0-5.5-1.5"/></svg></button>
+    <div class="vol">🔊 <input type="range" id="vol" min="0" max="1" step="0.01" value="1"></div>
+    <button class="rb leave" title="Leave" onclick="leave()"><svg viewBox="0 0 24 24"><path d="M3 15c5-5 13-5 18 0l-2 3-4-1v-3a12 12 0 0 0-6 0v3l-4 1z"/></svg></button>
+  </div>
+</div>
+
+<div id="ended" class="hide"><h2 style="margin:0" id="endT">You have left</h2><p class="sub" id="endS">Thank you for joining.</p><button class="btn primary" onclick="location.reload()">Join again</button></div>
+
+<script src="peerjs.min.js"></script>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const qs = new URLSearchParams(location.search);
+const P = qs.get('p') || '', G = qs.get('g') || '', SRV = qs.get('s') || '';
+const peerOpts = s => { if (!s) return { debug: 0 }; try { const u = new URL(/^https?:/.test(s) ? s : 'https://' + s); return { debug: 0, host: u.hostname, port: +u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname || '/', secure: u.protocol === 'https:' }; } catch { return { debug: 0 }; } };
+let ID = localStorage.getItem('novacall.id'); if (!ID) { ID = 'gu' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); localStorage.setItem('novacall.id', ID); }
+$('#nm').value = qs.get('n') || localStorage.getItem('novacall.name') || '';
+let stream = null, peer = null, conn = null, pc = null, mc = null, admitted = false, micOn = true, camOn = true, facing = 'user', ICE = null, ended = false, msgT = 0;
+const show = id => ['join', 'wait', 'live', 'ended'].forEach(x => $('#' + x).classList.toggle('hide', x !== id));
+if (!P || !G) { $('#err').textContent = 'This invite link is incomplete — ask the producer to send it again.'; $('#go').disabled = true; }
+
+async function openMedia() {
+  const cam = $('#cam').value, mic = $('#mic').value;
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: cam ? { deviceId: { exact: cam }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } } : { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
+    audio: { deviceId: mic ? { exact: mic } : undefined, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+  $('#self').srcObject = stream; $('#self2').srcObject = stream;
+  stream.getAudioTracks().forEach(t => t.enabled = micOn); stream.getVideoTracks().forEach(t => t.enabled = camOn);
+  meter(stream);
+  if (pc) for (const s of pc.getSenders()) { const nt = stream.getTracks().find(t => s.track && t.kind === s.track.kind); if (nt) await s.replaceTrack(nt).catch(() => {}); }
+}
+let actx = null, an = null;
+function meter(st) {
+  try { actx = actx || new AudioContext(); an = actx.createAnalyser(); an.fftSize = 512; actx.createMediaStreamSource(st).connect(an);
+    const buf = new Float32Array(512); const loop = () => { if (!an) return; an.getFloatTimeDomainData(buf); let m = 0; for (const v of buf) m = Math.max(m, Math.abs(v)); $('#lvl').style.width = Math.min(100, m * 140) + '%'; requestAnimationFrame(loop); }; loop(); } catch {}
+}
+async function listDevices() {
+  const ds = await navigator.mediaDevices.enumerateDevices();
+  const fill = (sel, kind) => { const cur = sel.value; sel.innerHTML = ''; ds.filter(d => d.kind === kind).forEach((d, i) => { const o = document.createElement('option'); o.value = d.deviceId; o.textContent = d.label || (kind === 'videoinput' ? 'Camera ' : 'Microphone ') + (i + 1); sel.append(o); }); if (cur) sel.value = cur; };
+  fill($('#cam'), 'videoinput'); fill($('#mic'), 'audioinput');
+}
+(async () => {
+  try { await openMedia(); await listDevices(); const vt = stream.getVideoTracks()[0], at = stream.getAudioTracks()[0];
+    if (vt) $('#cam').value = vt.getSettings().deviceId || ''; if (at) $('#mic').value = at.getSettings().deviceId || ''; }
+  catch (e) { $('#err').textContent = 'Allow the camera and microphone to join (' + (e.name || e.message) + ').'; }
+})();
+if (qs.get('auto') === '1') setTimeout(() => { if ($('#nm').value && !$('#go').disabled) $('#go').click(); }, 1800);
+$('#cam').onchange = () => openMedia().catch(e => $('#err').textContent = e.message);
+$('#mic').onchange = () => openMedia().catch(e => $('#err').textContent = e.message);
+
+$('#go').onclick = async () => {
+  const name = $('#nm').value.trim(); if (!name) { $('#err').textContent = 'Type your name first.'; $('#nm').focus(); return; }
+  localStorage.setItem('novacall.name', name);
+  if (!stream) { try { await openMedia(); } catch (e) { $('#err').textContent = 'Camera / microphone blocked: ' + e.message; return; } }
+  show('wait'); $('#waitT').textContent = 'Connecting to the studio…'; $('#waitS').textContent = 'Keep this page open.';
+  connect(name);
+};
+function connect(name) {
+  if (peer) try { peer.destroy(); } catch {}
+  peer = new Peer(peerOpts(SRV));
+  const to = setTimeout(() => { if (!conn || !conn.open) fail('Could not reach the studio', 'Check your internet, then try again. The church PC must have Nova Studio open.'); }, 20000);
+  peer.on('open', () => {
+    conn = peer.connect(P, { reliable: true, serialization: 'binary', metadata: { kind: 'guest', g: G, id: ID, name, ua: navigator.userAgent.slice(0, 120) } });
+    conn.on('open', () => { clearTimeout(to); $('#waitT').textContent = 'Waiting for the producer to let you in…'; $('#waitS').textContent = 'You will be connected as soon as the producer admits you. Keep this page open.'; });
+    conn.on('data', onMsg);
+    conn.on('close', () => { if (!ended) fail('The studio disconnected', 'The call ended or the church PC lost internet. You can join again.'); });
+    conn.on('error', () => {});
+  });
+  peer.on('call', call => {
+    if (!admitted || !call.metadata || call.metadata.kind !== 'novacall') { try { call.close(); } catch {} return; }
+    if (mc) try { mc.close(); } catch {}
+    mc = call; call.answer(stream);
+    call.on('stream', rs => { const v = $('#ret'); v.srcObject = rs; v.play().catch(() => {}); const vt = rs.getVideoTracks()[0]; if (vt) { if (!vt.muted) $('#nofeed').classList.add('hide'); vt.onunmute = () => $('#nofeed').classList.add('hide'); } });
+    const watch = () => { pc = call.peerConnection; if (!pc) return setTimeout(watch, 200);
+      pc.addEventListener('connectionstatechange', () => { const s = pc.connectionState; $('#net').textContent = s === 'connected' ? '● Connected' : s === 'failed' ? '✕ Connection failed' : '◌ ' + s;
+        $('#net').style.color = s === 'connected' ? '#4ade80' : s === 'failed' ? '#fca5a5' : '';
+        if (s === 'connected') show('live'); if (s === 'failed') send({ t: 'rtc-failed' }); }); };
+    watch();
+    setTimeout(() => { if (!ended) show('live'); }, 6000);
+  });
+  peer.on('error', e => { if (e.type === 'peer-unavailable') fail('Studio not found', 'Nova Studio is not open on the church PC, or the link is old. Ask the producer for a new link.'); });
+}
+function send(m) { try { conn && conn.open && conn.send(m); } catch {} }
+async function onMsg(m) {
+  if (!m || !m.t) return;
+  if (m.t === 'denied') return fail('Not admitted', m.reason || 'The producer did not let you in this time.');
+  if (m.t === 'kick') return fail('The producer ended your call', 'Thank you for joining the service!');
+  if (m.t === 'admitted') { ICE = m.ice || null; admitted = true; try { if (ICE) peer.options.config = { ...(peer.options.config || {}), iceServers: ICE }; } catch {} $('#waitT').textContent = 'Joining…'; return; }
+  if (m.t === 'lobby') return;
+  if (m.t === 'tally') { const t = $('#tally'); t.className = 'tally ' + m.state; t.textContent = m.state === 'program' ? '● ON AIR' : m.state === 'preview' ? 'GET READY' : 'STANDBY'; $('#pip').className = 'pip ' + m.state; return; }
+  if (m.t === 'msg') { const b = $('#msg'); b.innerHTML = ''; const s = document.createElement('small'); s.textContent = 'PRODUCER'; b.append(s, document.createTextNode(m.text)); b.classList.remove('hide'); clearTimeout(msgT); msgT = setTimeout(() => b.classList.add('hide'), Math.max(5000, m.text.length * 220)); chatLine('Producer', m.text); try { navigator.vibrate && navigator.vibrate(120); } catch {} return; }
+  if (m.t === 'mute') { setMic(!m.on); return; }
+  if (m.t === 'ping') { send({ t: 'pong', ts: m.ts }); return; }
+}
+function chatLine(who, text) { const d = document.createElement('div'); const b = document.createElement('b'); b.textContent = who + ': '; d.append(b, document.createTextNode(text)); $('#chatLog').append(d); $('#chatLog').scrollTop = 1e9; }
+$('#chatIn').onkeydown = e => { if (e.key === 'Enter' && e.target.value.trim()) { send({ t: 'chat', text: e.target.value.trim().slice(0, 200) }); chatLine('You', e.target.value.trim()); e.target.value = ''; } };
+function setMic(on) { micOn = on; stream && stream.getAudioTracks().forEach(t => t.enabled = on); $('#bMic').classList.toggle('off', !on); send({ t: 'state', mic: micOn, cam: camOn }); }
+function setCam(on) { camOn = on; stream && stream.getVideoTracks().forEach(t => t.enabled = on); $('#bCam').classList.toggle('off', !on); $('#selfOff').classList.toggle('hide', on); send({ t: 'state', mic: micOn, cam: camOn }); }
+$('#bMic').onclick = () => setMic(!micOn);
+$('#bCam').onclick = () => setCam(!camOn);
+$('#bFlip').onclick = async () => { facing = facing === 'user' ? 'environment' : 'user'; $('#cam').value = ''; await openMedia().catch(() => {}); };
+$('#vol').oninput = e => { $('#ret').volume = +e.target.value; };
+function fail(t, s) { if (ended) return; ended = true; cleanup(); $('#endT').textContent = t; $('#endS').textContent = s; show('ended'); }
+function cleanup() { try { mc && mc.close(); } catch {} try { pc && pc.close(); } catch {} pc = null; try { conn && conn.close(); } catch {} try { peer && peer.destroy(); } catch {} if (stream) stream.getTracks().forEach(t => t.stop()); an = null; }
+function leave() { send({ t: 'bye' }); ended = true; setTimeout(() => { cleanup(); $('#endT').textContent = 'You have left'; $('#endS').textContent = 'Thank you for joining.'; show('ended'); }, 150); }
+window.addEventListener('pagehide', () => send({ t: 'bye' }));
+</script>
+</body>
+</html>
