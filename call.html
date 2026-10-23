@@ -33,11 +33,12 @@
   #wait { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 24px; background: radial-gradient(circle at 50% 30%, #1d1306, var(--bg) 60%); }
   .spin { width: 54px; height: 54px; border-radius: 50%; border: 4px solid rgba(255,122,24,.2); border-top-color: var(--acc); animation: sp 1s linear infinite; } @keyframes sp { to { transform: rotate(360deg); } }
   /* live */
-  #live { position: fixed; inset: 0; display: flex; flex-direction: column; }
-  .stage { position: relative; flex: 1; background: #000; min-height: 0; }
+  #live { position: fixed; inset: 0; display: grid; grid-template-columns: 1fr 360px; grid-template-rows: 1fr auto; }
+  #live.nochat { grid-template-columns: 1fr 0; } #live.nochat .chat { display: none; }
+  .stage { position: relative; background: #000; min-height: 0; grid-column: 1; grid-row: 1; }
   .stage > video { width: 100%; height: 100%; object-fit: contain; }
   .stage .nofeed { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--dim); text-align: center; padding: 20px; }
-  .pip { position: absolute; right: 14px; bottom: 14px; width: min(30vw, 260px); aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; border: 3px solid #555; background: #000; box-shadow: 0 10px 30px rgba(0,0,0,.6); }
+  .pip { position: absolute; right: 14px; bottom: 14px; width: min(26vw, 240px); aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; border: 3px solid #555; background: #000; box-shadow: 0 10px 30px rgba(0,0,0,.6); }
   .pip video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
   .pip.program { border-color: var(--red); } .pip.preview { border-color: var(--green); }
   .tally { position: absolute; left: 14px; top: 14px; padding: 7px 14px; border-radius: 999px; font-weight: 900; letter-spacing: .12em; font-size: 13px; background: rgba(0,0,0,.65); border: 1px solid #444; }
@@ -46,16 +47,45 @@
   .msg { position: absolute; left: 50%; top: 16px; transform: translateX(-50%); max-width: min(90vw, 640px); background: rgba(20,22,28,.94); border: 1px solid var(--acc); border-radius: 14px; padding: 12px 18px; font-size: 18px; font-weight: 700; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
   .msg small { display: block; color: var(--acc); font-size: 11px; letter-spacing: .14em; margin-bottom: 2px; }
   .net { position: absolute; right: 14px; top: 14px; font-size: 12px; color: var(--dim); background: rgba(0,0,0,.55); padding: 5px 10px; border-radius: 999px; }
-  .bar { display: flex; gap: 10px; justify-content: center; align-items: center; padding: 12px; background: var(--panel); border-top: 1px solid var(--line); flex-wrap: wrap; }
+  .bar { grid-column: 1 / -1; grid-row: 2; display: flex; gap: 10px; justify-content: center; align-items: center; padding: 12px; background: var(--panel); border-top: 1px solid var(--line); flex-wrap: wrap; }
   .rb { width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel2); display: flex; align-items: center; justify-content: center; cursor: pointer; }
   .rb svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .rb.off { background: #3b0d12; border-color: var(--red); color: #fca5a5; } .rb.leave { background: var(--red); border-color: var(--red); width: 64px; border-radius: 26px; }
   .vol { display: flex; align-items: center; gap: 8px; color: var(--dim); font-size: 12px; } .vol input { width: 110px; accent-color: var(--acc); }
-  #chatBox { position: absolute; left: 14px; bottom: 14px; width: min(360px, 60vw); display: flex; flex-direction: column; gap: 6px; }
-  #chatLog { max-height: 30vh; overflow: auto; display: flex; flex-direction: column; gap: 4px; } #chatLog div { background: rgba(0,0,0,.65); border-radius: 10px; padding: 6px 10px; font-size: 13px; } #chatLog b { color: var(--acc); }
-  #chatIn { background: rgba(0,0,0,.7); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+  /* chat panel */
+  .chat { grid-column: 2; grid-row: 1; display: flex; flex-direction: column; min-height: 0; background: var(--panel); border-left: 1px solid var(--line); }
+  .chat-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  .chat-head .av { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--acc), var(--acc2)); display: flex; align-items: center; justify-content: center; color: #1a0f00; font-weight: 900; font-size: 13px; flex: none; }
+  .chat-head b { display: block; font-size: 14px; } .chat-head small { color: var(--green); font-size: 11px; font-weight: 700; } .chat-head .x { margin-left: auto; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel2); cursor: pointer; display: none; }
+  .chat-log { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px; scroll-behavior: smooth; }
+  .chat-empty { margin: auto; text-align: center; color: var(--dim); font-size: 13px; max-width: 240px; }
+  .bub { max-width: 82%; padding: 8px 12px 6px; border-radius: 16px; font-size: 14px; line-height: 1.35; word-wrap: break-word; white-space: pre-wrap; position: relative; animation: pop .18s ease-out; }
+  @keyframes pop { from { transform: translateY(6px); opacity: 0; } }
+  .bub.them { align-self: flex-start; background: var(--panel2); border: 1px solid var(--line); border-bottom-left-radius: 5px; }
+  .bub.me { align-self: flex-end; background: linear-gradient(135deg, #ff8a2e, var(--acc)); color: #1a0f00; border-bottom-right-radius: 5px; }
+  .bub.big { border-color: var(--acc); background: rgba(255,122,24,.12); }
+  .bub .who { display: block; font-size: 11px; font-weight: 800; color: var(--acc); margin-bottom: 2px; letter-spacing: .02em; }
+  .bub time { display: block; text-align: right; font-size: 10px; opacity: .6; margin-top: 2px; }
+  .sys { align-self: center; font-size: 11px; color: var(--dim); background: rgba(255,255,255,.05); padding: 3px 10px; border-radius: 99px; }
+  .quick { display: flex; gap: 6px; padding: 0 12px 8px; overflow-x: auto; scrollbar-width: none; } .quick::-webkit-scrollbar { display: none; }
+  .quick button { flex: none; border: 1px solid var(--line); background: var(--panel2); border-radius: 99px; padding: 5px 11px; font-size: 12px; cursor: pointer; white-space: nowrap; }
+  .quick button:hover { border-color: var(--acc); }
+  .compose { display: flex; align-items: flex-end; gap: 8px; padding: 10px 12px 12px; border-top: 1px solid var(--line); }
+  .compose textarea { flex: 1; resize: none; min-height: 42px; max-height: 110px; background: var(--panel2); border: 1px solid var(--line); border-radius: 21px; padding: 10px 14px; font: inherit; font-size: 14px; color: var(--text); outline: none; }
+  .compose textarea:focus { border-color: var(--acc); }
+  .send { width: 42px; height: 42px; flex: none; border-radius: 50%; border: 0; background: linear-gradient(135deg, var(--acc), var(--acc2)); color: #1a0f00; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform .1s; }
+  .send:disabled { opacity: .4; cursor: default; } .send:not(:disabled):active { transform: scale(.92); }
+  .send svg { width: 20px; height: 20px; fill: currentColor; margin-left: 2px; }
+  .rb .badge { position: absolute; top: -2px; right: -2px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--red); color: #fff; font-size: 11px; font-weight: 800; line-height: 18px; padding: 0 5px; display: none; }
+  .rb { position: relative; } .rb.has .badge { display: block; } .rb.on { border-color: var(--acc); color: var(--acc); }
   #ended { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 24px; }
-  @media (max-width: 760px) { .card { grid-template-columns: 1fr; } .pip { width: 34vw; } }
+  @media (max-width: 760px) { .card { grid-template-columns: 1fr; } .pip { width: 32vw; right: 10px; top: 52px; bottom: auto; } }
+  /* phones / narrow screens: chat slides up over the picture */
+  @media (max-width: 900px) {
+    #live, #live.nochat { grid-template-columns: 1fr; }
+    .chat { grid-column: 1; grid-row: 1; position: relative; z-index: 5; align-self: end; height: 62%; border-left: 0; border-top: 1px solid var(--line); border-radius: 18px 18px 0 0; box-shadow: 0 -20px 50px rgba(0,0,0,.6); }
+    #live.nochat .chat { display: none; } .chat-head .x { display: block; }
+  }
 </style>
 </head>
 <body>
@@ -94,13 +124,19 @@
     <div class="tally" id="tally">STANDBY</div>
     <div class="net" id="net">●</div>
     <div class="msg hide" id="msg"></div>
-    <div id="chatBox"><div id="chatLog"></div><input id="chatIn" placeholder="Message the producer… (Enter)" maxlength="200"></div>
     <div class="pip" id="pip"><video id="self2" muted playsinline autoplay></video></div>
   </div>
+  <aside class="chat" id="chat">
+    <div class="chat-head"><div class="av">NS</div><div><b>Chat with the studio</b><small id="chatSt">● Producer online</small></div><button class="x" id="chatX" title="Close">✕</button></div>
+    <div class="chat-log" id="chatLog"><div class="chat-empty" id="chatEmpty">Messages between you and the producer appear here.<br>They are private — viewers don’t see them.</div></div>
+    <div class="quick" id="quick"><button>👍 I’m ready</button><button>Can you hear me?</button><button>I can’t hear the church</button><button>One moment please</button></div>
+    <div class="compose"><textarea id="chatIn" rows="1" maxlength="300" placeholder="Type a message…"></textarea><button class="send" id="chatSend" title="Send" disabled><svg viewBox="0 0 24 24"><path d="M3.4 20.4l17.4-7.5c.8-.4.8-1.5 0-1.8L3.4 3.6c-.7-.3-1.4.2-1.4.9v4.6c0 .5.4.9.9 1l9.6 1.4-9.6 1.4c-.5.1-.9.5-.9 1v4.6c0 .7.7 1.2 1.4.9z"/></svg></button></div>
+  </aside>
   <div class="bar">
     <button class="rb" id="bMic" title="Microphone"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
     <button class="rb" id="bCam" title="Camera"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/></svg></button>
     <button class="rb" id="bFlip" title="Switch camera"><svg viewBox="0 0 24 24"><path d="M4 7h3l2-2h6l2 2h3v12H4z"/><path d="M9 13a3 3 0 0 0 5.5 1.5M15 12a3 3 0 0 0-5.5-1.5"/></svg></button>
+    <button class="rb on" id="bChat" title="Chat"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg><span class="badge" id="chatBadge"></span></button>
     <div class="vol">🔊 <input type="range" id="vol" min="0" max="1" step="0.01" value="1"></div>
     <button class="rb leave" title="Leave" onclick="leave()"><svg viewBox="0 0 24 24"><path d="M3 15c5-5 13-5 18 0l-2 3-4-1v-3a12 12 0 0 0-6 0v3l-4 1z"/></svg></button>
   </div>
@@ -117,6 +153,7 @@ const P = qs.get('p') || '', G = qs.get('g') || '', SRV = qs.get('s') || '';
 const peerOpts = s => { if (!s) return { debug: 0 }; try { const u = new URL(/^https?:/.test(s) ? s : 'https://' + s); return { debug: 0, host: u.hostname, port: +u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname || '/', secure: u.protocol === 'https:' }; } catch { return { debug: 0 }; } };
 let ID = localStorage.getItem('novacall.id'); if (!ID) { ID = 'gu' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); localStorage.setItem('novacall.id', ID); }
 $('#nm').value = qs.get('n') || localStorage.getItem('novacall.name') || '';
+let lastTally = 'standby';
 let stream = null, peer = null, conn = null, pc = null, mc = null, admitted = false, micOn = true, camOn = true, facing = 'user', ICE = null, ended = false, msgT = 0;
 const show = id => ['join', 'wait', 'live', 'ended'].forEach(x => $('#' + x).classList.toggle('hide', x !== id));
 if (!P || !G) { $('#err').textContent = 'This invite link is incomplete — ask the producer to send it again.'; $('#go').disabled = true; }
@@ -190,13 +227,40 @@ async function onMsg(m) {
   if (m.t === 'kick') return fail('The producer ended your call', 'Thank you for joining the service!');
   if (m.t === 'admitted') { ICE = m.ice || null; admitted = true; try { if (ICE) peer.options.config = { ...(peer.options.config || {}), iceServers: ICE }; } catch {} $('#waitT').textContent = 'Joining…'; return; }
   if (m.t === 'lobby') return;
-  if (m.t === 'tally') { const t = $('#tally'); t.className = 'tally ' + m.state; t.textContent = m.state === 'program' ? '● ON AIR' : m.state === 'preview' ? 'GET READY' : 'STANDBY'; $('#pip').className = 'pip ' + m.state; return; }
-  if (m.t === 'msg') { const b = $('#msg'); b.innerHTML = ''; const s = document.createElement('small'); s.textContent = 'PRODUCER'; b.append(s, document.createTextNode(m.text)); b.classList.remove('hide'); clearTimeout(msgT); msgT = setTimeout(() => b.classList.add('hide'), Math.max(5000, m.text.length * 220)); chatLine('Producer', m.text); try { navigator.vibrate && navigator.vibrate(120); } catch {} return; }
+  if (m.t === 'tally') { const t = $('#tally'); t.className = 'tally ' + m.state; t.textContent = m.state === 'program' ? '● ON AIR' : m.state === 'preview' ? 'GET READY' : 'STANDBY'; $('#pip').className = 'pip ' + m.state; if (m.state !== lastTally && m.state !== 'standby') chatAdd('sys', m.state === 'program' ? 'You are ON AIR now' : 'Get ready — you are next'); lastTally = m.state; return; }
+  if (m.t === 'chat') { chatAdd('them', m.text, m.from || 'Producer'); return; }
+  if (m.t === 'msg') { chatAdd('them', m.text, 'Producer', true); const b = $('#msg'); b.innerHTML = ''; const s = document.createElement('small'); s.textContent = 'PRODUCER'; b.append(s, document.createTextNode(m.text)); b.classList.remove('hide'); clearTimeout(msgT); msgT = setTimeout(() => b.classList.add('hide'), Math.max(5000, m.text.length * 220)); try { navigator.vibrate && navigator.vibrate(120); } catch {} return; }
   if (m.t === 'mute') { setMic(!m.on); return; }
   if (m.t === 'ping') { send({ t: 'pong', ts: m.ts }); return; }
 }
-function chatLine(who, text) { const d = document.createElement('div'); const b = document.createElement('b'); b.textContent = who + ': '; d.append(b, document.createTextNode(text)); $('#chatLog').append(d); $('#chatLog').scrollTop = 1e9; }
-$('#chatIn').onkeydown = e => { if (e.key === 'Enter' && e.target.value.trim()) { send({ t: 'chat', text: e.target.value.trim().slice(0, 200) }); chatLine('You', e.target.value.trim()); e.target.value = ''; } };
+// ---- chat ----
+let unread = 0;
+const chatOpen = () => !$('#live').classList.contains('nochat');
+const hhmm = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+function chatAdd(kind, text, who, big) {
+  $('#chatEmpty') && $('#chatEmpty').remove();
+  const log = $('#chatLog');
+  if (kind === 'sys') { const d = document.createElement('div'); d.className = 'sys'; d.textContent = text; log.append(d); log.scrollTop = 1e9; return; }
+  const d = document.createElement('div'); d.className = 'bub ' + kind + (big ? ' big' : '');
+  if (kind === 'them') { const w = document.createElement('span'); w.className = 'who'; w.textContent = (big ? '📣 ' : '') + (who || 'Producer'); d.append(w); }
+  d.append(document.createTextNode(text)); const t = document.createElement('time'); t.textContent = hhmm(); d.append(t);
+  log.append(d); log.scrollTop = 1e9;
+  if (kind === 'them' && (!chatOpen() || document.hidden)) { unread++; $('#chatBadge').textContent = unread > 9 ? '9+' : unread; $('#bChat').classList.add('has'); if (navigator.vibrate) navigator.vibrate(80); }
+}
+function chatSend(text) {
+  text = String(text || '').trim().slice(0, 300); if (!text) return;
+  send({ t: 'chat', text }); chatAdd('me', text);
+  const i = $('#chatIn'); i.value = ''; grow(); $('#chatSend').disabled = true; i.focus();
+}
+const grow = () => { const i = $('#chatIn'); i.style.height = 'auto'; i.style.height = Math.min(110, i.scrollHeight) + 'px'; };
+$('#chatIn').addEventListener('input', () => { grow(); $('#chatSend').disabled = !$('#chatIn').value.trim(); });
+$('#chatIn').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatSend($('#chatIn').value); } });
+$('#chatSend').onclick = () => chatSend($('#chatIn').value);
+$('#quick').onclick = e => { const b = e.target.closest('button'); if (b) chatSend(b.textContent); };
+function setChat(open) { $('#live').classList.toggle('nochat', !open); $('#bChat').classList.toggle('on', open); if (open) { unread = 0; $('#bChat').classList.remove('has'); setTimeout(() => { $('#chatLog').scrollTop = 1e9; }, 50); } }
+$('#bChat').onclick = () => setChat(!chatOpen());
+$('#chatX').onclick = () => setChat(false);
+if (matchMedia('(max-width: 900px)').matches) setChat(false);
 function setMic(on) { micOn = on; stream && stream.getAudioTracks().forEach(t => t.enabled = on); $('#bMic').classList.toggle('off', !on); send({ t: 'state', mic: micOn, cam: camOn }); }
 function setCam(on) { camOn = on; stream && stream.getVideoTracks().forEach(t => t.enabled = on); $('#bCam').classList.toggle('off', !on); $('#selfOff').classList.toggle('hide', on); send({ t: 'state', mic: micOn, cam: camOn }); }
 $('#bMic').onclick = () => setMic(!micOn);
