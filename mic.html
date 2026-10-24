@@ -152,7 +152,25 @@ async function openMic() {
   await listDevs(); const at = raw.getAudioTracks()[0]; const lab = at ? at.label : '';
   $('#dbl').textContent = (lab.length > 28 ? lab.slice(0, 26) + '…' : lab || 'MICROPHONE').toUpperCase();
   if (pcm.sp) { pcmStop(); pcmStart(); }
+  const t0 = raw.getAudioTracks()[0]; if (t0) t0.onended = () => { if (raw && raw.getAudioTracks()[0] === t0) reopenMic('The phone stopped the microphone — reopening it'); };
+  actx.onstatechange = () => { if (actx.state !== 'running' && actx.state !== 'closed') setTimeout(() => actx.resume().catch(() => {}), 300); };
 }
+// the microphone must never stop by itself: a phone call, another app or a re-plugged lavalier can take it — open it again
+let reopening = false;
+async function reopenMic(why) {
+  if (reopening) return; reopening = true; if (why) toast(why);
+  for (let i = 0; i < 20; i++) { try { await openMic(); reopening = false; toast('Microphone back ✓'); return; } catch { await new Promise(r => setTimeout(r, 1500)); } }
+  reopening = false; $('#err').textContent = 'The microphone could not be reopened — tap Mic and choose it again.';
+}
+let micStill = 0;
+setInterval(() => {
+  if (!raw || reopening) return;
+  if (actx && actx.state !== 'running') actx.resume().catch(() => {});
+  const t = raw.getAudioTracks()[0];
+  if (!t || t.readyState === 'ended') { reopenMic('Microphone stopped — reopening it'); return; }
+  micStill = t.muted ? micStill + 1 : 0;
+  if (micStill >= 3) { micStill = 0; reopenMic('Microphone paused by the phone — reopening it'); }
+}, 2000);
 function applyGain() { if (!gainN) return; gainN.gain.setTargetAtTime(S.muted ? 0 : Math.pow(10, S.gain / 20), actx.currentTime, 0.02); }
 async function listDevs() {
   const ds = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput');
@@ -267,6 +285,7 @@ async function onMsg(m) {
     case 'tally': setTally(m.state); break;
     case 'name': if (m.name) { S.name = m.name; localStorage.setItem('novamic.name', m.name); $('#name').textContent = m.name; } S.pcName = m.pc || S.pcName; setTally(S.tally); break;
     case 'mute': setMute(!!m.on, true); break;
+    case 'remic': reopenMic(); break;
     case 'identify': toast('This is ' + S.name); if (navigator.vibrate) navigator.vibrate(300); break;
   }
 }
