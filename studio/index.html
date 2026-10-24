@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nova Studio — live production for churches</title>
+<meta name="description" content="Nova Studio runs your whole church broadcast from one screen: cameras, phones, sound, lyrics, titles and multistreaming to YouTube, Facebook and TikTok. Book a free demo.">
+<meta property="og:title" content="Nova Studio — live production for churches">
+<meta property="og:description" content="Cameras, phones, sound, lyrics, titles and multistreaming in one app. Book a free demo.">
+<meta property="og:image" content="img/og.jpg">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#15171d">
+<link rel="icon" href="img/favicon.png">
+<link rel="apple-touch-icon" href="img/icon-180.png">
+<link rel="preload" href="fonts/archivo-latin-standard-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/style.css">
+<link rel="preload" as="image" href="img/studio.webp">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top" aria-label="Nova Studio home">
+      <img src="img/favicon.png" alt="" width="32" height="32">
+      <span>Nova Studio</span>
+    </a>
+    <nav class="links" aria-label="Main">
+      <a href="#screens">Screens</a>
+      <a href="#phones">Phones</a>
+      <a href="#sound">Sound</a>
+      <a href="#live">Going live</a>
+      <a href="#teams">For your team</a>
+    </nav>
+    <a class="btn btn-sm" href="#demo">Book a demo</a>
+    <button class="menu" aria-label="Open menu" aria-expanded="false" aria-controls="mobileNav"><i></i><i></i></button>
+  </div>
+  <nav class="mobile-nav" id="mobileNav" aria-label="Mobile">
+    <a href="#screens">Screens</a><a href="#phones">Phones</a><a href="#sound">Sound</a><a href="#live">Going live</a><a href="#teams">For your team</a><a href="#demo">Book a demo</a>
+  </nav>
+</header>
+
+<main id="main">
+  <!-- ============ HERO: the Program monitor cuts from bars to the studio ============ -->
+  <section class="hero">
+    <div class="wrap">
+      <h1 class="hero-title">Your whole church broadcast, run from one&nbsp;screen.</h1>
+      <div class="hero-row">
+        <p class="hero-lead">Switch cameras, mix the sound, put up lyrics and titles, and stream to YouTube, Facebook and TikTok at the same time. Nova Studio is made in Ghana for church media teams — powerful for producers, simple for volunteers.</p>
+        <div class="hero-cta">
+          <a class="btn" href="#demo">Book a free demo</a>
+          <a class="btn btn-ghost" href="#screens">See the screens</a>
+        </div>
+      </div>
+
+      <figure class="monitor" id="heroMonitor">
+        <div class="mon-bar">
+          <span class="tally" id="heroTally"><b></b><span id="heroTallyText">PREVIEW</span></span>
+          <span class="mon-name">Nova Studio</span>
+          <time class="mon-clock" id="heroClock">--:--:--</time>
+        </div>
+        <div class="mon-screen">
+          <img class="layer-a" src="img/bars.webp" alt="" aria-hidden="true">
+          <img class="layer-b" id="heroShot" src="img/studio.webp" width="1920" height="1080"
+               alt="The Nova Studio control screen: Preview and Program monitors, transitions, the input bar with church graphics, titles and the sound panel">
+        </div>
+        <figcaption class="mon-foot">
+          <span class="tbar-label" id="tbarLabel">Drag the T-bar</span>
+          <input class="tbar" id="tbar" type="range" min="0" max="100" value="0" aria-label="T-bar: drag to transition between colour bars and the studio">
+          <button class="cut" id="heroCut" type="button">CUT</button>
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============ what it replaces ============ -->
+  <section class="replaces">
+    <div class="wrap">
+      <h2 class="h2">One program instead of a rack of machines.</h2>
+      <ul class="replace-list">
+        <li><b>Video switcher</b><span>Preview and Program, CUT, AUTO, T-bar, 8 overlays, stingers, multi-layer scenes.</span></li>
+        <li><b>Sound desk</b><span>Faders, EQ, compressor, gate, AI noise removal, two extra mixes for PA and stream.</span></li>
+        <li><b>Graphics</b><span>132 ready titles, lyrics, giving and MoMo cards, 180 animated church graphics.</span></li>
+        <li><b>Encoder</b><span>YouTube, Facebook, TikTok and Twitch at once — wide and upright.</span></li>
+        <li><b>Recorder</b><span>Program recording plus a clean file for every camera.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ gallery: works like Nova Studio's own input bar ============ -->
+  <section class="screens" id="screens">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 class="h2">Inside Nova Studio</h2>
+        <p class="sec-lead">Pick a screen below — it cuts to the monitor, just like an input in Nova Studio. Keys 1 to 9 work too.</p>
+      </div>
+      <div class="viewer">
+        <div class="viewer-screen">
+          <img id="viewImg" src="img/multiview.webp" alt="" width="1600" height="900" loading="lazy">
+          <div class="viewer-wipe" id="viewWipe" aria-hidden="true"></div>
+        </div>
+        <p class="viewer-cap" id="viewCap" aria-live="polite"></p>
+      </div>
+      <div class="inputs" role="tablist" aria-label="Nova Studio screens" id="inputs"></div>
+    </div>
+  </section>
+
+  <!-- ============ chapters ============ -->
+  <section class="chapter" id="phones">
+    <div class="wrap ch-grid">
+      <div class="ch-text">
+        <h2 class="h2">Every phone becomes a camera or a wireless mic.</h2>
+        <p>Scan a QR code and a phone joins as a camera with sound — with a tally light, zoom, torch and its own clean recording. Plug a lavalier into another phone and it becomes a wireless microphone with a live sound monitor.</p>
+        <ul class="ticks">
+          <li>Works on the church WiFi with no internet</li>
+          <li>Reconnects by itself if WiFi drops or a call comes in</li>
+          <li>Remote guests join from a link and see the church</li>
+        </ul>
+      </div>
+      <div class="ch-media phones-media">
+        <figure class="shot reveal"><img src="img/micform.webp" alt="Adding a phone microphone: Nova Studio shows a QR code to scan" loading="lazy" width="1600" height="583"></figure>
+        <figure class="phone reveal"><img src="img/phone-mic.webp" alt="Nova Mic on a phone: live sound monitor, ON AIR, mute button and lavalier selected" loading="lazy" width="780" height="1688"></figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="chapter alt" id="sound">
+    <div class="wrap ch-grid flip">
+      <div class="ch-text">
+        <h2 class="h2">A real mixing console, and sound that keeps going.</h2>
+        <p>Every microphone, instrument and video gets a channel strip: gate, compressor, de-esser, four-band EQ and AI voice isolation that removes fans and generator noise. Sound Check tells volunteers which channel is silent, humming or too loud — and what to do.</p>
+        <ul class="ticks">
+          <li>Separate mixes for the stream, the PA or an overflow room</li>
+          <li>Lip sync for every camera and mixer feed</li>
+          <li>A frozen USB mic or a sleeping projector can’t stop the sound</li>
+        </ul>
+      </div>
+      <div class="ch-media">
+        <figure class="shot reveal"><img src="img/console.webp" alt="The Nova Studio Mixing Console with channel strips, EQ, compressor and master fader" loading="lazy" width="1600" height="900"></figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="chapter" id="graphics">
+    <div class="wrap ch-grid">
+      <div class="ch-text">
+        <h2 class="h2">Lyrics, names and giving details, clean on every screen.</h2>
+        <p>Put the preacher’s name up with one click, move through lyrics with the arrow keys, and show MoMo and bank details with a QR code. Titles can fill themselves from Excel or Google Sheets for announcements and the order of service.</p>
+        <ul class="ticks">
+          <li>132 ready titles and a designer for your own</li>
+          <li>Comments from online viewers on the stream only — the projector stays clean</li>
+          <li>Draw on the live picture from a tablet</li>
+        </ul>
+      </div>
+      <div class="ch-media">
+        <figure class="shot reveal"><img src="img/program.webp" alt="Program output: a Welcome to Our Church graphic with the lower third Pastor Alex Acheampong, Senior Pastor" loading="lazy" width="1600" height="900"></figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="chapter alt" id="live">
+    <div class="wrap ch-grid flip">
+      <div class="ch-text">
+        <h2 class="h2">Go live everywhere, and know exactly what happened.</h2>
+        <p>One GO LIVE button sends the service to every platform at once. If the internet drops, the stream reconnects by itself and a safety recording keeps running. After the service, the report explains every problem in plain words — with what to do next time.</p>
+        <ul class="ticks">
+          <li>Check your upload speed before you go live</li>
+          <li>Clean recordings of every camera for editing</li>
+          <li>Sermon clips for TikTok, Reels and Shorts, with captions</li>
+        </ul>
+      </div>
+      <div class="ch-media stack">
+        <figure class="shot reveal"><img src="img/stream.webp" alt="Streaming settings with YouTube and multiple destinations" loading="lazy" width="1600" height="900"></figure>
+        <figure class="shot reveal"><img src="img/report.webp" alt="The service report explaining what happened and what to do" loading="lazy" width="1600" height="900"></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ for the team ============ -->
+  <section class="teams" id="teams">
+    <div class="wrap">
+      <h2 class="h2">Made for volunteers who learn on Sunday morning.</h2>
+      <div class="team-grid">
+        <div><h3>AlexDev, the built-in assistant</h3><p>Ask in plain English or Pidgin — “camera e no dey show” — and it checks the live system and opens the right setting. It works offline.</p></div>
+        <div><h3>Practice mode</h3><p>Run a full rehearsal, GO LIVE included, without sending anything to the internet. A guided tour and exercises tick themselves off.</p></div>
+        <div><h3>Your keys, your panels</h3><p>Hotkeys on any keyboard, Stream Deck, MIDI faders and X-keys — or run the show from a tablet with Nova Remote.</p></div>
+        <div><h3>Nothing lost if the PC crashes</h3><p>Nova Studio puts the program, titles, lyrics and stream back where they were, and keeps the PC awake while you are live.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ book a demo ============ -->
+  <section class="demo" id="demo">
+    <div class="wrap demo-grid">
+      <div class="demo-side">
+        <h2 class="h2">Book a free demo</h2>
+        <p class="sec-lead">We show Nova Studio with your own cameras and your Sunday programme, in person or online.</p>
+        <ol class="steps">
+          <li><b>Send the form</b><span>It opens WhatsApp (or email) with your details filled in.</span></li>
+          <li><b>We confirm the time</b><span>Usually the same day.</span></li>
+          <li><b>See it working</b><span>About 45 minutes — bring your questions and your team.</span></li>
+        </ol>
+        <p class="contact">Prefer to call? <a href="tel:+233551918658">055 191 8658</a> · <a href="mailto:officialcodetheweb@gmail.com">officialcodetheweb@gmail.com</a></p>
+      </div>
+
+      <form class="form" id="demoForm" novalidate>
+        <div class="row2">
+          <label>Your name<input name="name" required autocomplete="name" placeholder="e.g. Pastor Alex Acheampong"></label>
+          <label>Church or ministry<input name="church" required autocomplete="organization"></label>
+        </div>
+        <div class="row2">
+          <label>WhatsApp / phone<input name="phone" required type="tel" autocomplete="tel" inputmode="tel" placeholder="055 123 4567"></label>
+          <label><span>Email <small>(optional)</small></span><input name="email" type="email" autocomplete="email"></label>
+        </div>
+        <div class="row2">
+          <label>Town / city<input name="city" required autocomplete="address-level2"></label>
+          <label>How would you like the demo?
+            <select name="mode"><option>At our church</option><option>Online (Zoom / Google Meet)</option><option>At Code The Web</option></select>
+          </label>
+        </div>
+        <div class="row2">
+          <label>Preferred date<input name="date" type="date" required></label>
+          <label>Preferred time
+            <select name="time"><option>Morning (9am – 12pm)</option><option>Afternoon (12pm – 4pm)</option><option>Evening (4pm – 7pm)</option></select>
+          </label>
+        </div>
+        <fieldset class="chips">
+          <legend>What do you use today? <small>(optional)</small></legend>
+          <label><input type="checkbox" name="use" value="Phones"><span>Phones</span></label>
+          <label><input type="checkbox" name="use" value="Webcams / USB cameras"><span>Webcams</span></label>
+          <label><input type="checkbox" name="use" value="HDMI cameras"><span>HDMI cameras</span></label>
+          <label><input type="checkbox" name="use" value="OBS"><span>OBS</span></label>
+          <label><input type="checkbox" name="use" value="vMix"><span>vMix</span></label>
+          <label><input type="checkbox" name="use" value="Nothing yet"><span>Nothing yet</span></label>
+        </fieldset>
+        <label><span>Anything we should know? <small>(optional)</small></span><textarea name="note" rows="3" placeholder="Number of cameras, platforms you stream to, your questions…"></textarea></label>
+        <p class="form-err" id="formErr" role="alert"></p>
+        <div class="form-actions">
+          <button class="btn" type="submit" data-via="whatsapp">Book on WhatsApp</button>
+          <button class="btn btn-ghost-dark" type="submit" data-via="email">Send by email</button>
+        </div>
+        <div class="form-done" id="formDone" hidden>
+          <h3>Your request is ready</h3>
+          <p id="formDoneText">Press Send in WhatsApp to book. We will reply to confirm the time.</p>
+          <button class="btn btn-ghost-dark" type="button" id="formAgain">Book another demo</button>
+        </div>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div class="foot-brand"><img src="img/favicon.png" alt="" width="28" height="28"><span>Nova Studio</span></div>
+    <p>Made by <b>Code The Web</b>, Ghana · CEO Alex Akwasi Acheampong · <a href="tel:+233551918658">055 191 8658</a> · <a href="mailto:officialcodetheweb@gmail.com">officialcodetheweb@gmail.com</a></p>
+    <p class="small">© <span id="year">2026</span> Code The Web. Screens shown are from Nova Studio 0.13.</p>
+  </div>
+</footer>
+
+<script src="js/main.js" defer></script>
+</body>
+</html>
