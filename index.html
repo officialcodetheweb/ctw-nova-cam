@@ -151,6 +151,7 @@
   <button class="rb" id="bTorch" title="Torch"><svg viewBox="0 0 24 24"><path d="M9 2h6l-1 6H10z"/><path d="M10 8h4v14h-4z"/></svg></button>
   <button class="rb" id="bFlip" title="Front / back"><svg viewBox="0 0 24 24"><path d="M3 7h3l2-3h8l2 3h3v12H3z"/><path d="M9 13a3 3 0 0 0 5.6 1.5M15 11a3 3 0 0 0-5.6-1.5"/></svg></button>
   <button class="rb" id="bRec" title="Record a clean copy (sent to the studio PC)"><span></span></button>
+  <button class="rb" id="bPip" title="Floating picture — keeps the camera running while you use other apps" style="display:none"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><rect x="12" y="12" width="7" height="5" rx="1" fill="currentColor"/></svg></button>
   <button class="rb" id="bLock" title="Lock the screen buttons"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></button>
   <button class="rb" id="bSet" title="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg></button>
 </div>
@@ -182,6 +183,9 @@
   <div class="row"><label>Frame guide</label><div class="seg" id="guideSeg"><button data-v="916">9:16</button><button data-v="43">4:3</button><button data-v="11">1:1</button><button data-v="239">2.39:1</button><button data-v="safe">Safe 90%</button></div></div>
   <div class="row"><label>Zebra level</label><div class="seg" id="zebSeg"><button data-v="0.9">90%</button><button data-v="0.95">95%</button><button data-v="1">100%</button></div></div>
   <div class="row"><label>Peaking colour</label><div class="seg" id="pkSeg"><button data-v="#ff3b30">Red</button><button data-v="#34c759">Green</button><button data-v="#ffffff">White</button></div></div>
+  <h5>OTHER APPS</h5>
+  <div class="row"><label>Keep running</label><div class="seg" id="bgSeg"><button data-v="1">On</button><button data-v="0">Off</button></div></div>
+  <p class="hint" style="text-align:left" id="bgHint">Need to text or check something? Tap the <b>floating picture</b> button first (the little window icon), then open the other app. The camera keeps sending from the small window. If the phone still pauses the camera, Nova Studio keeps the last picture and the camera restarts by itself when you come back.</p>
   <h5>LINK</h5>
   <div class="stats" id="stats"></div>
   <p class="hint" style="text-align:left;margin-top:12px"><b>Home screen:</b> Android Chrome — ⋮ → <i>Add to Home screen</i>. iPhone Safari — Share → <i>Add to Home Screen</i>. Next time just tap the icon.</p>
@@ -215,7 +219,7 @@ const guessName = () => { const ua = navigator.userAgent; const m = /Android [\d
 const S = { name: localStorage.getItem('nova.name') || guessName(), res: +(localStorage.getItem('nova.res') || 1080), fps: +(localStorage.getItem('nova.fps') || 30), mic: localStorage.getItem('nova.mic') !== '0',
   facing: localStorage.getItem('nova.facing') || 'environment', orient: localStorage.getItem('nova.orient') || 'landscape', ns: localStorage.getItem('nova.ns') === '1', torch: false, zoom: 1, zcaps: null, mode: 'rtc', tally: '', pcName: '', locked: false };
 let SID = '', stream = null, ws = null, pc = null, jpegTimer = null, wakeLock = null, retry = 0, zoomSpeed = 0, zoomTimer = null;
-const rtts = []; let lastStatus = {};
+const rtts = []; let lastStatus = {}, lastPongAt = 0;
 
 // ---------- camera ----------
 async function openCamera() {
@@ -235,7 +239,7 @@ async function openCamera() {
   S.zoom = (track.getSettings && track.getSettings().zoom) || 1; drawZoom(); drawZoomPresets();
   // replace the tracks in a running WebRTC link (switching front / back or quality)
   if (pc) for (const s of pc.getSenders()) { const nt = stream.getTracks().find(t => s.track && t.kind === s.track.kind); if (nt) await s.replaceTrack(nt).catch(() => {}); }
-  setupAudio(stream); updateParams(); setTimeout(placeOverlays, 100);
+  watchTracks(stream); setupAudio(stream); updateParams(); setTimeout(placeOverlays, 100);
   sendStatus(true);
 }
 async function setZoom(z) {
@@ -277,15 +281,16 @@ function linkDown(denied, why) {
   if (denied) { banner('err', why || 'Not allowed — scan the QR code in Nova Studio again'); return; }
   retry++; banner('err', `Lost the studio connection — reconnecting… ${retry > 2 ? (why || '(check the WiFi)') : ''}`);
   if (navigator.vibrate) navigator.vibrate([250, 120, 250]);
-  setTimeout(connect, Math.min(6000, 1000 + retry * 800));
+  clearTimeout(reconnTimer); reconnTimer = setTimeout(connect, Math.min(6000, 1000 + retry * 800));
 }
-function connect() { if (LOCAL) connectLocal(); else connectCloud(); }
+let reconnTimer = null;
+function connect() { clearTimeout(reconnTimer); if (ws && (ws.readyState === 0 || ws.readyState === 1)) return; if (LOCAL) connectLocal(); else connectCloud(); }
 function connectLocal() {
   const u = `wss://${location.host}/ws/cam?k=${encodeURIComponent(K)}&id=${ID}&name=${encodeURIComponent(S.name)}`;
-  ws = new WebSocket(u); ws.binaryType = 'arraybuffer';
+  const sock = ws = new WebSocket(u); ws.binaryType = 'arraybuffer';
   ws.onopen = linkUp;
   ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch { return; } onMsg(m); };
-  ws.onclose = ev => linkDown(ev.code === 4003);
+  ws.onclose = ev => { if (ws === sock) linkDown(ev.code === 4003); };
   ws.onerror = () => {};
 }
 let peer = null;
@@ -315,10 +320,11 @@ async function connectCloud() {
 const send = m => { if (ws && ws.readyState === 1) ws.send(LOCAL ? JSON.stringify(m) : m); };
 async function onMsg(m) {
   switch (m.t) {
+    case 'remic': if (S.mic) { S.needReopen = true; recover('studio asked'); } break;
     case 'offer': SID = m.sid || ''; await startRtc(m.sdp); break;
     case 'ice': if (pc && m.c && (!m.sid || m.sid === SID)) pc.addIceCandidate(m.c).catch(() => {}); break;
     case 'mode': if (m.mode === 'jpeg') { stopRtc(); startJpeg(); } else stopJpeg(); S.mode = m.mode; break;
-    case 'pong': { const r = Date.now() - m.ts; rtts.push(r); if (rtts.length > 10) rtts.shift(); break; }
+    case 'pong': { lastPongAt = Date.now(); const r = Date.now() - m.ts; rtts.push(r); if (rtts.length > 10) rtts.shift(); break; }
     case 'tally': setTally(m.state); break;
     case 'name': if (m.name) { S.name = m.name; localStorage.setItem('nova.name', m.name); $('#camName').textContent = m.name; $('#nameIn').value = m.name; } S.pcName = m.pc || S.pcName; break;
     case 'zoomTo': setZoom(+m.value); break;
@@ -417,7 +423,7 @@ function sendStatus(force) {
   const t = stream && stream.getVideoTracks()[0]; const st = t && t.getSettings ? t.getSettings() : {};
   const s = { t: 'status', name: S.name, q: S.q, rtt: S.rtt != null ? Math.round(S.rtt) : null, jitter: S.jitter != null ? Math.round(S.jitter) : null, loss: Math.round(lossPct * 10) / 10,
     battery: battery ? Math.round(battery.level * 100) : null, charging: battery ? battery.charging : null, zoom: Math.round(S.zoom * 100) / 100, zcaps: S.zcaps, torch: S.torch, torchOk: !!S.torchOk, expCaps: S.expCaps ? { min: S.expCaps.min, max: S.expCaps.max, step: S.expCaps.step } : null, exp: S.exp || 0, expModes: S.expModes, wbModes: S.wbModes, focusModes: S.focusModes, ct: S.ctCaps ? { min: S.ctCaps.min, max: S.ctCaps.max } : null, pointOk: !!S.pointOk, stealth: $('#stealth').classList.contains('on'), locked: !!S.locked, rec: typeof ISO !== 'undefined' && ISO.on, recMB: typeof ISO !== 'undefined' ? Math.round(ISO.queuedMB) : 0, level: typeof level !== 'undefined' ? Math.round(level) : null, ns: !!S.ns, mic: !!S.mic,
-    facing: S.facing, orient: portraitQ.matches ? 'portrait' : 'landscape', w: st.width, h: st.height, fps: st.frameRate ? Math.round(st.frameRate) : S.fps, mode: S.mode, net: navigator.connection ? navigator.connection.effectiveType : null };
+    facing: S.facing, orient: portraitQ.matches ? 'portrait' : 'landscape', w: st.width, h: st.height, fps: st.frameRate ? Math.round(st.frameRate) : S.fps, mode: S.mode, net: navigator.connection ? navigator.connection.effectiveType : null, bg: document.hidden, camPaused: !!S.camMuted };
   const key = JSON.stringify(s); if (!force && key === lastStatus.key && Date.now() - lastStatus.at < 5000) return; lastStatus = { key, at: Date.now() }; send(s);
 }
 function renderStats() {
@@ -447,7 +453,7 @@ seg('#fpsSeg', () => S.fps, v => { S.fps = +v; localStorage.setItem('nova.fps', 
 seg('#micSeg', () => (S.mic ? 1 : 0), v => { S.mic = v === '1'; localStorage.setItem('nova.mic', v); openCamera().then(() => send({ t: 'renegotiate' })); });
 seg('#focusSeg', () => S.focusMode || 'continuous', v => { S.focusMode = v; applyAdv({ focusMode: v }); });
 $('#expIn').oninput = e => applyAdv({ exposureCompensation: +e.target.value });
-document.addEventListener('visibilitychange', async () => { if (document.visibilityState === 'visible') { keepAwake(); if (stream && stream.getVideoTracks()[0].readyState === 'ended') openCamera(); } });
+// (leaving / coming back to the app is handled in the BACKGROUND section at the end)
 async function keepAwake() { try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch {} }
 const portraitQ = matchMedia('(orientation: portrait)');
 function checkTurn() { $('#turn').classList.toggle('on', !!stream && S.orient === 'landscape' && portraitQ.matches); }
@@ -464,7 +470,7 @@ async function begin() {
   try { await openCamera(); } catch (e) { $('#startErr').textContent = 'Camera not allowed: ' + (e.message || e.name) + ' — allow camera and microphone for this site.'; return; }
   $('#start').style.display = 'none'; keepAwake(); checkTurn();
   try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {}); } catch {}
-  connect(); setInterval(measure, 2000);
+  connect(); setInterval(measure, 2000); startKeepAlive();
 }
 $('#go').onclick = begin;
 if (localStorage.getItem('nova.started') && K) { $('#startText').textContent = 'Connecting to Nova Studio…'; begin(); }   // opened from the home-screen icon: start by itself
@@ -635,6 +641,95 @@ function isoStart() {
 }
 function isoStop() { if (!ISO.on) return; ISO.on = false; $('#bRec').classList.remove('on'); try { ISO.rec.stop(); } catch {} sendStatus(true); }
 $('#bRec').onclick = () => (ISO.on ? isoStop() : isoStart());
+
+// ======================= BACKGROUND: keep working while another app is open =======================
+// A web page cannot truly run in the background, so this uses every legitimate way to stay alive and to heal quickly:
+//  1. a floating Picture-in-Picture window (the phone keeps the page and camera running while it is showing)
+//  2. a silent sound + media notification, which tells the phone this page is "playing" and must not be frozen
+//  3. a Web Lock, which stops Chrome freezing the page
+//  4. on return (or when the camera comes back) the camera, the studio link and the picture are checked and repaired at once
+const BG = { on: localStorage.getItem('nova.bg') !== '0', audio: null, started: false, recovering: false };
+const vEl = $('#v'); vEl.setAttribute('autopictureinpicture', ''); vEl.autoPictureInPicture = true; vEl.disablePictureInPicture = false;
+const pipSupported = () => !!(document.pictureInPictureEnabled || (vEl.webkitSupportsPresentationMode && vEl.webkitSupportsPresentationMode('picture-in-picture')));
+const pipActive = () => !!document.pictureInPictureElement || vEl.webkitPresentationMode === 'picture-in-picture';
+async function togglePip(auto) {
+  try {
+    if (pipActive()) { if (document.pictureInPictureElement) await document.exitPictureInPicture(); else vEl.webkitSetPresentationMode('inline'); return; }
+    if (!vEl.videoWidth) return;
+    if (document.pictureInPictureEnabled) await vEl.requestPictureInPicture(); else vEl.webkitSetPresentationMode('picture-in-picture');
+  } catch (e) { if (!auto) { banner('warn', 'Floating picture is not available in this browser'); setTimeout(() => banner(), 2500); } }
+}
+if (pipSupported()) { $('#bPip').style.display = ''; $('#bPip').onclick = () => togglePip(false);
+  vEl.addEventListener('enterpictureinpicture', () => $('#bPip').classList.add('on')); vEl.addEventListener('leavepictureinpicture', () => $('#bPip').classList.remove('on'));
+  vEl.addEventListener('webkitpresentationmodechanged', () => $('#bPip').classList.toggle('on', vEl.webkitPresentationMode === 'picture-in-picture')); }
+// a tiny silent sound (1 step of volume, inaudible) played in a loop
+function silentWav() {
+  const sr = 8000, n = sr * 2, b = new ArrayBuffer(44 + n * 2), d = new DataView(b), w = (o, t) => { for (let i = 0; i < t.length; i++) d.setUint8(o + i, t.charCodeAt(i)); };
+  w(0, 'RIFF'); d.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); d.setUint32(16, 16, true); d.setUint16(20, 1, true); d.setUint16(22, 1, true); d.setUint32(24, sr, true); d.setUint32(28, sr * 2, true); d.setUint16(32, 2, true); d.setUint16(34, 16, true); w(36, 'data'); d.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) d.setInt16(44 + i * 2, (i % 80) < 40 ? 1 : -1, true);
+  return URL.createObjectURL(new Blob([b], { type: 'audio/wav' }));
+}
+function startKeepAlive() {
+  if (!BG.on || BG.started) return; BG.started = true;
+  try { if (navigator.locks) navigator.locks.request('nova-cam-alive', () => new Promise(() => {})); } catch {}
+  try {
+    const a = BG.audio = new Audio(silentWav()); a.loop = true; a.setAttribute('playsinline', '');
+    const play = () => a.play().catch(() => addEventListener('pointerdown', () => a.play().catch(() => {}), { once: true, capture: true }));
+    play(); a.addEventListener('pause', () => { if (BG.on && !a.ended) setTimeout(() => a.play().catch(() => {}), 300); });
+  } catch {}
+  try {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({ title: 'Nova Cam is live', artist: S.name, album: 'Nova Studio', artwork: [{ src: 'icon.png', sizes: '512x512', type: 'image/png' }] });
+      navigator.mediaSession.playbackState = 'playing';
+      for (const [act, fn] of [['play', () => BG.audio && BG.audio.play()], ['pause', () => BG.audio && BG.audio.play()], ['stop', () => {}], ['enterpictureinpicture', () => togglePip(true)]]) { try { navigator.mediaSession.setActionHandler(act, fn); } catch {} }
+    }
+  } catch {}
+}
+function stopKeepAlive() { BG.started = false; try { BG.audio && BG.audio.pause(); } catch {} BG.audio = null; try { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none'; } catch {} }
+seg('#bgSeg', () => (BG.on ? 1 : 0), v => { BG.on = v === '1'; localStorage.setItem('nova.bg', v); if (BG.on) startKeepAlive(); else stopKeepAlive(); });
+
+// camera track watching: the phone may pause the camera while another app is in front
+function watchTracks(st) {
+  const vt = st && st.getVideoTracks()[0]; if (!vt) return; S.camMuted = !!vt.muted;
+  vt.onmute = () => { S.camMuted = true; sendStatus(true); };
+  vt.onunmute = () => { S.camMuted = false; sendStatus(true); setTimeout(() => { if (pc && pc.connectionState !== 'connected') send({ t: 'renegotiate' }); }, 1500); };
+  vt.onended = () => { S.needReopen = true; if (!document.hidden) recover('camera ended'); };
+  // the phone's sound must never stop by itself: a phone call or another app can take the microphone — open it again
+  const at = st.getAudioTracks()[0];
+  if (at) at.onended = () => { if (stream === st && S.mic) { S.needReopen = true; if (!document.hidden) recover('mic ended'); } };
+}
+let micStill = 0;
+setInterval(() => {
+  if (!stream || !S.mic || document.hidden || BG.recovering) return;
+  if (actx && actx.state !== 'running') actx.resume().catch(() => {});
+  const at = stream.getAudioTracks()[0];
+  if (!at || at.readyState === 'ended') { S.needReopen = true; recover('mic ended'); return; }
+  micStill = at.muted ? micStill + 1 : 0; if (micStill >= 3) { micStill = 0; S.needReopen = true; recover('mic paused'); }
+}, 2500);
+// check and repair everything: camera, studio link, picture
+async function recover(why) {
+  if (BG.recovering || $('#start').style.display !== 'none') return; BG.recovering = true;
+  try {
+    keepAwake(); if (actx && actx.state !== 'running') actx.resume().catch(() => {}); if (BG.audio && BG.audio.paused) BG.audio.play().catch(() => {});
+    const vt = stream && stream.getVideoTracks()[0];
+    let reopened = false;
+    if (!vt || vt.readyState === 'ended' || S.needReopen) { S.needReopen = false; try { await openCamera(); reopened = true; } catch (e) { banner('err', 'Camera could not restart — ' + (e.message || e.name)); setTimeout(() => banner(), 3000); } }
+    else if (vt.muted) { await new Promise(r => setTimeout(r, 1200)); if (vt.muted) { try { await openCamera(); reopened = true; } catch {} } }
+    if (!ws || ws.readyState !== 1) { retry = 0; connect(); }                                  // link was lost while away: reconnect straight away
+    else {                                                                                       // link looks open: make sure it is really alive
+      const t0 = Date.now(); send({ t: 'ping', ts: t0 });
+      setTimeout(() => { if (lastPongAt < t0 && ws && ws.readyState === 1) { try { LOCAL ? ws.close() : ws.conn.close(); } catch {} } }, 2500);
+      setTimeout(() => { if (ws && ws.readyState === 1 && S.mode === 'rtc' && (reopened || !pc || pc.connectionState !== 'connected')) send({ t: 'renegotiate' }); }, 2000);
+    }
+    sendStatus(true);
+  } finally { setTimeout(() => { BG.recovering = false; }, 1500); }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') recover('back in front');
+  else { sendStatus(true); if (BG.on && !pipActive() && pipSupported()) togglePip(true); }       // leaving: float the picture if the phone allows it
+});
+addEventListener('pageshow', () => recover('page shown')); addEventListener('online', () => { retry = 0; recover('network back'); });
+document.addEventListener('resume', () => recover('resumed')); addEventListener('focus', () => { if (!document.hidden) recover('focus'); });
 addEventListener('resize', () => setTimeout(placeOverlays, 50));
 $('#v').addEventListener('loadedmetadata', placeOverlays); $('#v').addEventListener('resize', placeOverlays);
 setInterval(updateParams, 1000);
