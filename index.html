@@ -126,7 +126,7 @@
 <canvas id="ov"></canvas><canvas id="guides"></canvas>
 <div id="frame"></div>
 <div id="fsq"></div><div id="level"></div><div id="levelTxt"></div>
-<div id="stealth">● Nova Cam is on — double-tap to show</div>
+<div id="stealth">● Nova Cam is on — screen resting to keep the phone cool · double-tap to show</div>
 <div class="top">
   <span class="pill" id="tally"><i></i><span id="tallyText">CONNECTING</span></span>
   <span class="name" id="camName">Nova Cam</span>
@@ -338,6 +338,7 @@ async function onMsg(m) {
     case 'exposure': S.exp = +m.value; applyAdv({ exposureCompensation: +m.value }); break;
     case 'zoomAnim': zoomAnim(+m.to, +m.ms || 1000, m.ease); break;
     case 'stealth': $('#stealth').classList.toggle('on', !!m.on); break;
+    case 'cool': S.cool = !!m.on; localStorage.setItem('nova.cool', S.cool ? '1' : '0'); lastTouch = Date.now(); break;
     case 'lockUi': if (!!m.on !== !!S.locked) $('#bLock').onclick(); break;
     case 'tallyShow': document.body.classList.toggle('notally', m.on === false); break;
     case 'exposureMode': applyAdv({ exposureMode: m.mode }); S.expMode = m.mode; break;
@@ -400,9 +401,29 @@ async function setTorch(on) { S.torch = on; $('#bTorch').classList.toggle('on', 
 
 // ---------- health: how good is the WiFi link ----------
 let lossPct = 0, rtcRtt = null;
+// ---------- quality guard: what the phone really sends, and keeping it cool so it never drops quality ----------
+const SQ = { at: 0, bytes: 0, kbps: 0, w: 0, h: 0, fps: 0, limit: 'none', cpuRuns: 0, cooled: false };
+function guardQuality() {
+  // a phone that gets hot or busy lowers the picture: give it less work (fewer frames per second, screen resting) and keep the full sharpness
+  SQ.cpuRuns = SQ.limit === 'cpu' ? SQ.cpuRuns + 1 : 0;
+  if (SQ.cpuRuns >= 3 && !SQ.cooled && S.fps > 24) {
+    SQ.cooled = true; const t = stream && stream.getVideoTracks()[0];
+    if (t) t.applyConstraints({ frameRate: { ideal: 24, max: 25 } }).catch(() => {});
+    const vs = pc && pc.getSenders().find(x => x.track && x.track.kind === 'video'); if (vs) { const p = vs.getParameters(); if (p.encodings && p.encodings[0]) { p.encodings[0].maxFramerate = 24; vs.setParameters(p).catch(() => {}); } }
+    if (S.cool !== false) setRest(true);
+  }
+}
+// resting screen: black screen, preview off — the phone runs much cooler (double-tap to wake)
+S.cool = localStorage.getItem('nova.cool') !== '0'; let lastTouch = Date.now();
+addEventListener('pointerdown', () => { lastTouch = Date.now(); }, { capture: true });
+function setRest(on) { $('#stealth').classList.toggle('on', !!on); }
+new MutationObserver(() => { const on = $('#stealth').classList.contains('on'); $('#v').style.visibility = on && S.mode !== 'jpeg' ? 'hidden' : ''; }).observe($('#stealth'), { attributes: true, attributeFilter: ['class'] });
+setInterval(() => { if (S.cool && S.tally && S.tally !== 'off' && Date.now() - lastTouch > 60000 && !$('#stealth').classList.contains('on') && ws && ws.readyState === 1) setRest(true); }, 5000);
 async function measure() {
   send({ t: 'ping', ts: Date.now() });
-  if (pc) { try { const st = await pc.getStats(); st.forEach(r => { if (r.type === 'remote-inbound-rtp' && r.kind === 'video') { rtcRtt = r.roundTripTime != null ? r.roundTripTime * 1000 : rtcRtt; lossPct = r.fractionLost != null ? r.fractionLost * 100 : lossPct; } }); } catch {} }
+  if (pc) { try { const st = await pc.getStats(); st.forEach(r => { if (r.type === 'remote-inbound-rtp' && r.kind === 'video') { rtcRtt = r.roundTripTime != null ? r.roundTripTime * 1000 : rtcRtt; lossPct = r.fractionLost != null ? r.fractionLost * 100 : lossPct; }
+    if (r.type === 'outbound-rtp' && r.kind === 'video') { const now = r.timestamp, b = r.bytesSent || 0; if (SQ.at && now > SQ.at) SQ.kbps = Math.round((b - SQ.bytes) * 8 / (now - SQ.at)); SQ.at = now; SQ.bytes = b;
+      SQ.w = r.frameWidth || 0; SQ.h = r.frameHeight || 0; SQ.fps = Math.round(r.framesPerSecond || 0); SQ.limit = r.qualityLimitationReason || 'none'; } }); } catch {} guardQuality(); }
   const avg = rtts.length ? rtts.reduce((a, b) => a + b, 0) / rtts.length : null;
   const jitter = rtts.length > 2 ? Math.sqrt(rtts.reduce((a, b) => a + (b - avg) * (b - avg), 0) / rtts.length) : 0;
   const rtt = rtcRtt != null ? rtcRtt : avg;
@@ -425,7 +446,8 @@ function sendStatus(force) {
   const t = stream && stream.getVideoTracks()[0]; const st = t && t.getSettings ? t.getSettings() : {};
   const s = { t: 'status', name: S.name, q: S.q, rtt: S.rtt != null ? Math.round(S.rtt) : null, jitter: S.jitter != null ? Math.round(S.jitter) : null, loss: Math.round(lossPct * 10) / 10,
     battery: battery ? Math.round(battery.level * 100) : null, charging: battery ? battery.charging : null, zoom: Math.round(S.zoom * 100) / 100, zcaps: S.zcaps, torch: S.torch, torchOk: !!S.torchOk, expCaps: S.expCaps ? { min: S.expCaps.min, max: S.expCaps.max, step: S.expCaps.step } : null, exp: S.exp || 0, expModes: S.expModes, wbModes: S.wbModes, focusModes: S.focusModes, ct: S.ctCaps ? { min: S.ctCaps.min, max: S.ctCaps.max } : null, pointOk: !!S.pointOk, stealth: $('#stealth').classList.contains('on'), locked: !!S.locked, rec: typeof ISO !== 'undefined' && ISO.on, recMB: typeof ISO !== 'undefined' ? Math.round(ISO.queuedMB) : 0, level: typeof level !== 'undefined' ? Math.round(level) : null, ns: !!S.ns, mic: !!S.mic,
-    facing: S.facing, orient: portraitQ.matches ? 'portrait' : 'landscape', w: st.width, h: st.height, fps: st.frameRate ? Math.round(st.frameRate) : S.fps, mode: S.mode, net: navigator.connection ? navigator.connection.effectiveType : null, bg: document.hidden, camPaused: !!S.camMuted };
+    facing: S.facing, orient: portraitQ.matches ? 'portrait' : 'landscape', w: st.width, h: st.height, fps: st.frameRate ? Math.round(st.frameRate) : S.fps, mode: S.mode, net: navigator.connection ? navigator.connection.effectiveType : null, bg: document.hidden, camPaused: !!S.camMuted,
+    sw: SQ.w, sh: SQ.h, skbps: SQ.kbps, sfps: SQ.fps, limit: SQ.limit, cooled: SQ.cooled, cool: S.cool };
   const key = JSON.stringify(s); if (!force && key === lastStatus.key && Date.now() - lastStatus.at < 5000) return; lastStatus = { key, at: Date.now() }; send(s);
 }
 function renderStats() {
