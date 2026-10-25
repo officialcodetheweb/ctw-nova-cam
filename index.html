@@ -237,6 +237,7 @@ async function openCamera() {
   $('#bTorch').style.display = S.torchOk ? '' : 'none'; $('#focusRow').style.display = S.focusOk ? '' : 'none'; $('#expRow').style.display = S.expCaps ? '' : 'none';
   if (S.expCaps) { $('#expIn').min = S.expCaps.min; $('#expIn').max = S.expCaps.max; $('#expIn').step = S.expCaps.step || 0.1; }
   S.zoom = (track.getSettings && track.getSettings().zoom) || 1; drawZoom(); drawZoomPresets();
+  if (S.focusModes.includes('continuous') && S.focusMode !== 'manual') track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});   // keep the speaker in focus
   // replace the tracks in a running WebRTC link (switching front / back or quality)
   if (pc) for (const s of pc.getSenders()) { const nt = stream.getTracks().find(t => s.track && t.kind === s.track.kind); if (nt) await s.replaceTrack(nt).catch(() => {}); }
   watchTracks(stream); setupAudio(stream); updateParams(); setTimeout(placeOverlays, 100);
@@ -354,12 +355,13 @@ async function startRtc(sdp) {
   pc = new RTCPeerConnection({ iceServers: LOCAL ? [] : [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }, { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' }] });
   const mySid = SID; pc.onicecandidate = e => { if (e.candidate) send({ t: 'ice', c: e.candidate.toJSON ? e.candidate.toJSON() : e.candidate, sid: mySid }); };
   pc.onconnectionstatechange = () => { if (pc && ['failed'].includes(pc.connectionState)) send({ t: 'rtc-failed', sid: SID }); };
-  for (const t of stream.getTracks()) pc.addTrack(t, stream);
+  for (const t of stream.getTracks()) { if (t.kind === 'video') try { t.contentHint = 'detail'; } catch {} pc.addTrack(t, stream); }   // 'detail' = keep it sharp, never blur it to save data
   await pc.setRemoteDescription({ type: 'offer', sdp });
   const ans = await pc.createAnswer(); await pc.setLocalDescription(ans);
   send({ t: 'answer', sdp: pc.localDescription.sdp, sid: SID });
   const vs = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-  if (vs && vs.getParameters) { try { const p = vs.getParameters(); p.encodings = p.encodings && p.encodings.length ? p.encodings : [{}]; p.encodings[0].maxBitrate = S.res >= 1080 ? 8e6 : 4e6; p.degradationPreference = 'maintain-framerate'; await vs.setParameters(p); } catch {} }
+  if (vs && vs.getParameters) { try { const p = vs.getParameters(); p.encodings = p.encodings && p.encodings.length ? p.encodings : [{}]; const e0 = p.encodings[0]; e0.maxBitrate = S.res >= 2160 ? 25e6 : S.res >= 1080 ? 14e6 : 7e6; e0.scaleResolutionDownBy = 1; e0.maxFramerate = S.fps; e0.priority = 'high'; e0.networkPriority = 'high';
+    p.degradationPreference = 'maintain-resolution'; await vs.setParameters(p); } catch {} }   // full picture size always — on a weak link it drops a few frames instead of going blurry
 }
 function stopRtc() { if (pc) { try { pc.close(); } catch {} pc = null; } }
 // JPEG fallback (when WebRTC cannot connect on this network)
@@ -368,9 +370,9 @@ function startJpeg() {
   stopJpeg(); const v = $('#v'); pcmStart();
   jpegTimer = setInterval(() => {
     if (!ws || ws.readyState !== 1 || ws.bufferedAmount > 1.5e6 || !v.videoWidth) return;
-    const big = Math.max(v.videoWidth, v.videoHeight), lim = LOCAL ? 1280 : 960, k = Math.min(1, lim / big); const w = Math.round(v.videoWidth * k), h = Math.round(v.videoHeight * k);
+    const big = Math.max(v.videoWidth, v.videoHeight), lim = LOCAL ? 1920 : 1280, k = Math.min(1, lim / big); const w = Math.round(v.videoWidth * k), h = Math.round(v.videoHeight * k);
     if (cv.width !== w) { cv.width = w; cv.height = h; } cv.getContext('2d').drawImage(v, 0, 0, w, h);
-    cv.toBlob(b => b && b.arrayBuffer().then(buf => ws && ws.readyState === 1 && ws.send(buf)), 'image/jpeg', LOCAL ? 0.72 : 0.6);
+    cv.toBlob(b => b && b.arrayBuffer().then(buf => ws && ws.readyState === 1 && ws.send(buf)), 'image/jpeg', LOCAL ? 0.85 : 0.7);
   }, 1000 / Math.min(S.fps, LOCAL ? 25 : 15));
 }
 function stopJpeg() { clearInterval(jpegTimer); jpegTimer = null; pcmStop(); }
