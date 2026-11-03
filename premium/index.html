@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nova Studio Premium — French</title>
+<meta name="description" content="Unlock French (Français) in Nova Studio — pay once with Mobile Money or card.">
+<link rel="icon" href="../brand/nova-icon-128.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://js.paystack.co/v2/inline.js"></script>
+<style>
+:root{--bg:#0a0a0c;--panel:#131317;--panel2:#1a1a20;--line:#26262e;--text:#f2f2f5;--mut:#9a9aa6;--acc:#ff7a18;--acc2:#ffb347;--ok:#22c55e;--bad:#ef4444}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:15px/1.5 Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:-20% -10% auto;height:70vh;background:radial-gradient(600px 340px at 20% 10%,rgba(255,122,24,.22),transparent 70%),radial-gradient(500px 300px at 85% 0%,rgba(255,179,71,.12),transparent 70%);pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:1040px;margin:0 auto;padding:22px 18px 60px}
+header{display:flex;align-items:center;gap:12px;margin-bottom:38px}
+header img{width:38px;height:38px;border-radius:10px}
+header b{font-weight:800;letter-spacing:.01em}header span{color:var(--mut);font-size:13px}
+.badge{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:.14em;color:#1a0d02;background:linear-gradient(135deg,var(--acc2),var(--acc));padding:6px 11px;border-radius:999px}
+.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:28px;align-items:start}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+h1{font:400 clamp(40px,6vw,68px)/1.02 'Instrument Serif',Georgia,serif;margin:0 0 14px;letter-spacing:-.01em}
+h1 em{color:var(--acc2);font-style:italic}
+.lead{color:#c9c9d2;font-size:17px;max-width:520px;margin:0 0 26px}
+.perks{list-style:none;padding:0;margin:0 0 28px;display:grid;gap:10px}
+.perks li{display:flex;gap:12px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.perks li i{flex:none;width:22px;height:22px;border-radius:50%;background:rgba(255,122,24,.15);color:var(--acc);display:grid;place-items:center;font-style:normal;font-weight:800;font-size:12px;margin-top:1px}
+.demo{display:flex;gap:10px;flex-wrap:wrap}
+.demo div{flex:1;min-width:150px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:13px}
+.demo small{display:block;color:var(--mut);font-size:10px;letter-spacing:.12em;font-weight:700;margin-bottom:6px}
+.demo .fr{border-color:rgba(255,122,24,.5)}
+.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:20px;padding:24px;box-shadow:0 30px 80px rgba(0,0,0,.45);position:sticky;top:20px}
+.price{display:flex;align-items:baseline;gap:8px;margin:2px 0 4px}.price b{font-size:46px;font-weight:800;letter-spacing:-.02em}.price span{color:var(--mut);font-weight:600}
+.once{color:var(--acc2);font-size:13px;font-weight:600;margin-bottom:20px}
+.lic{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:#0f0f13;border:1px solid var(--line);margin-bottom:16px}
+.lic .dot{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--acc2),var(--acc));display:grid;place-items:center;color:#1a0d02;font-weight:800;font-size:13px;flex:none}
+.lic b{display:block;font-size:14px}.lic small{color:var(--mut);font-family:ui-monospace,Consolas,monospace;font-size:12px}
+label{display:block;font-size:12px;font-weight:600;color:var(--mut);margin:0 0 6px}
+input{width:100%;background:#0f0f13;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:12px 13px;font:inherit;outline:none;margin-bottom:14px}
+input:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(255,122,24,.18)}
+button{width:100%;border:0;border-radius:12px;padding:14px;font:700 15px Inter,sans-serif;color:#1a0d02;background:linear-gradient(135deg,var(--acc2),var(--acc));cursor:pointer;transition:transform .12s,filter .12s}
+button:hover{filter:brightness(1.06)}button:active{transform:scale(.99)}button:disabled{opacity:.55;cursor:default}
+.pays{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.pays span{font-size:11px;font-weight:700;color:var(--mut);border:1px solid var(--line);border-radius:999px;padding:4px 9px}
+.msg{font-size:13px;margin-top:12px;min-height:18px}.msg.err{color:#fca5a5}.msg.mut{color:var(--mut)}
+.secure{display:flex;gap:8px;align-items:center;justify-content:center;color:var(--mut);font-size:12px;margin-top:14px}
+.done{text-align:center;padding:10px 0}
+.done .tick{width:74px;height:74px;border-radius:50%;margin:4px auto 14px;background:rgba(34,197,94,.14);display:grid;place-items:center;color:var(--ok);font-size:34px;animation:pop .5s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{from{transform:scale(.4);opacity:0}}
+.done h2{margin:0 0 6px;font-size:22px}.done p{color:#c9c9d2;margin:0 0 6px}
+.steps{text-align:left;background:#0f0f13;border:1px solid var(--line);border-radius:12px;padding:12px 14px 12px 32px;margin-top:14px;color:#c9c9d2;font-size:13px}
+.spin{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.2);border-top-color:var(--acc);animation:sp 0.8s linear infinite;display:inline-block;vertical-align:-4px;margin-right:8px}
+@keyframes sp{to{transform:rotate(360deg)}}
+footer{margin-top:46px;color:var(--mut);font-size:12px;text-align:center}
+footer a{color:var(--acc2);text-decoration:none}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><img src="../brand/nova-icon-128.png" alt=""><div><b>Nova Studio</b><br><span>by Code The Web</span></div><div class="badge">PREMIUM</div></header>
+  <div class="grid">
+    <section>
+      <h1>Your studio,<br><em>en français.</em></h1>
+      <p class="lead">Unlock French in Nova Studio. Every menu, setting, button and help line switches to French — and live captions can write French too. Switch back to English any time.</p>
+      <ul class="perks" id="perks"></ul>
+      <div class="demo">
+        <div><small>ENGLISH</small>Go live · Service Plan · Lyrics · Settings</div>
+        <div class="fr"><small>FRANÇAIS</small>Passer en direct · Déroulé du culte · Paroles · Paramètres</div>
+      </div>
+    </section>
+    <aside class="card" id="card">
+      <div id="buy">
+        <div style="font-size:13px;color:var(--mut);font-weight:600" id="itemTitle">French language (Français)</div>
+        <div class="price"><b id="price">—</b><span id="cur">GHS</span></div>
+        <div class="once">Pay once · yours for the life of your licence</div>
+        <div class="lic hide" id="licBox"><div class="dot">NS</div><div><b id="licName">—</b><small id="licNo">—</small></div></div>
+        <div id="licAsk" class="hide"><label for="licInp">Licence number</label><input id="licInp" placeholder="NS-000123" autocomplete="off"><div class="msg mut" style="margin:-8px 0 12px">Find it in Nova Studio → Settings → License &amp; Updates.</div></div>
+        <label for="email">Email for your receipt</label>
+        <input id="email" type="email" placeholder="you@church.org" autocomplete="email">
+        <button id="pay" disabled><span class="spin"></span>Connecting…</button>
+        <div class="msg" id="msg"></div>
+        <div class="pays"><span>MTN MoMo</span><span>Telecel Cash</span><span>AirtelTigo Money</span><span>Visa / Mastercard</span></div>
+        <div class="secure">🔒 Secure payment by Paystack</div>
+      </div>
+      <div id="ok" class="done hide">
+        <div class="tick">✓</div>
+        <h2>Merci ! French is unlocked.</h2>
+        <p id="okLine">Your payment was received.</p>
+        <ol class="steps">
+          <li>Go back to Nova Studio — it switches to French by itself within a minute.</li>
+          <li>Or press <b>“I have paid — check now”</b> in Settings → Language.</li>
+          <li>Keep your Paystack receipt email.</li>
+        </ol>
+      </div>
+      <div id="own" class="done hide">
+        <div class="tick">✓</div>
+        <h2>You already have French</h2>
+        <p>This licence already includes French. In Nova Studio open Settings → Language and choose Français.</p>
+      </div>
+    </aside>
+  </div>
+  <footer>Questions? WhatsApp <a href="https://wa.me/233551918658">0551918658</a> · <a href="mailto:officialcodetheweb@gmail.com">officialcodetheweb@gmail.com</a><br>© Code The Web · Ghana</footer>
+</div>
+<script>
+const SERVER = 'https://nova-license.onrender.com';
+const q = new URLSearchParams(location.search);
+const F = q.get('f') || 'lang-fr';
+let LIC = (q.get('lic') || '').trim().toUpperCase();
+const $ = id => document.getElementById(id);
+const msg = (t, cls) => { const m = $('msg'); m.textContent = t || ''; m.className = 'msg ' + (cls || ''); };
+const payBtn = (t, busy, dis) => { const b = $('pay'); b.innerHTML = (busy ? '<span class="spin"></span>' : '') + t; b.disabled = !!dis; };
+const show = id => { for (const x of ['buy', 'ok', 'own']) $(x).classList.toggle('hide', x !== id); };
+async function api(path, body) {
+  const r = await fetch(SERVER + path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {});
+  return r.json();
+}
+async function load() {
+  payBtn('Connecting…', true, true);
+  const slow = setTimeout(() => msg('Waking up the payment server — this can take up to a minute the first time…', 'mut'), 4000);
+  try {
+    const info = await api(`/api/premium/info?f=${encodeURIComponent(F)}&lic=${encodeURIComponent(LIC)}`);
+    clearTimeout(slow); msg('');
+    if (!info.ok) { payBtn('Unavailable', false, true); return msg(info.error || 'This item is not available', 'err'); }
+    $('itemTitle').textContent = info.title; $('price').textContent = Number(info.price).toLocaleString(); $('cur').textContent = info.currency;
+    $('perks').innerHTML = info.perks.map(p => `<li><i>✓</i><span>${p.replace(/[<>&]/g, '')}</span></li>`).join('');
+    if (info.license) {
+      $('licBox').classList.remove('hide'); $('licName').textContent = info.license.org || info.license.name; $('licNo').textContent = info.license.lic;
+      if (info.license.owned) return show('own');
+      if (!info.license.active) { payBtn('Licence not active', false, true); return msg('This licence is not active. Contact Code The Web.', 'err'); }
+    } else { $('licAsk').classList.remove('hide'); if (LIC) msg('That licence number was not found — check it below.', 'err'); $('licInp').value = LIC; }
+    if (!info.payReady) { payBtn('Payment opens soon', false, true); return msg('Online payment is being switched on. WhatsApp 0551918658 to buy now.', 'mut'); }
+    payBtn(`Pay ${info.currency} ${Number(info.price).toLocaleString()}`, false, false);
+  } catch (e) { clearTimeout(slow); payBtn('Try again', false, false); $('pay').onclick = () => location.reload(); msg('Could not reach the payment server. Check your internet and try again.', 'err'); }
+}
+async function verify(reference) {
+  show('buy'); payBtn('Confirming your payment…', true, true); msg('');
+  for (let i = 0; i < 8; i++) {
+    try { const r = await api('/api/premium/verify', { reference });
+      if (r.ok) { $('okLine').textContent = `Licence ${r.lic} now includes French.`; history.replaceState(null, '', location.pathname + `?lic=${encodeURIComponent(r.lic)}&f=${F}`); return show('ok'); }
+      if (!r.pending) { payBtn('Try again', false, false); return msg(r.error || 'The payment could not be confirmed', 'err'); }
+    } catch {}
+    await new Promise(r => setTimeout(r, 3000));
+  }
+  payBtn('Check again', false, false); $('pay').onclick = () => verify(reference);
+  msg('Paystack has not confirmed the payment yet. If money left your account, wait a minute and press Check again.', 'mut');
+}
+$('pay').onclick = async () => {
+  const email = $('email').value.trim(); if (!$('licAsk').classList.contains('hide')) LIC = $('licInp').value.trim().toUpperCase();
+  if (!LIC) return msg('Enter your licence number', 'err');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return msg('Enter a valid email for your receipt', 'err');
+  payBtn('Opening Paystack…', true, true); msg('');
+  try {
+    const r = await api('/api/premium/start', { lic: LIC, f: F, email, back: location.origin + location.pathname });
+    if (r.owned) return show('own');
+    if (!r.ok) { payBtn('Pay again', false, false); return msg(r.error, 'err'); }
+    if (window.PaystackPop) {
+      const pop = new PaystackPop();
+      pop.resumeTransaction(r.accessCode, { onSuccess: () => verify(r.reference), onCancel: () => { payBtn('Pay now', false, false); msg('Payment cancelled — nothing was charged.', 'mut'); } });
+    } else location.href = r.url;
+  } catch { payBtn('Pay again', false, false); msg('Could not reach the payment server. Check your internet.', 'err'); }
+};
+if (q.get('reference') || q.get('trxref')) verify(q.get('reference') || q.get('trxref')); else load();
+</script>
+</body>
+</html>
