@@ -358,6 +358,7 @@ async function startRtc(sdp) {
   pc.onconnectionstatechange = () => { if (pc && ['failed'].includes(pc.connectionState)) send({ t: 'rtc-failed', sid: SID }); };
   for (const t of stream.getTracks()) { if (t.kind === 'video') try { t.contentHint = 'detail'; } catch {} pc.addTrack(t, stream); }   // 'detail' = keep it sharp, never blur it to save data
   await pc.setRemoteDescription({ type: 'offer', sdp });
+  await preferHardwareCodec(pc);
   const ans = await pc.createAnswer(); await pc.setLocalDescription(ans);
   send({ t: 'answer', sdp: pc.localDescription.sdp, sid: SID });
   const vs = pc.getSenders().find(s => s.track && s.track.kind === 'video');
@@ -365,6 +366,21 @@ async function startRtc(sdp) {
     p.degradationPreference = 'maintain-resolution'; await vs.setParameters(p); } catch {} }   // full picture size always — on a weak link it drops a few frames instead of going blurry
 }
 function stopRtc() { if (pc) { try { pc.close(); } catch {} pc = null; } }
+// Use the phone's video chip (hardware H.264) when it has one: software encoding makes a busy phone soften the picture to keep up.
+async function preferHardwareCodec(pc) {
+  try {
+    const tr = pc.getTransceivers().find(t => t.sender && t.sender.track && t.sender.track.kind === 'video'); const caps = RTCRtpSender.getCapabilities && RTCRtpSender.getCapabilities('video');
+    if (!tr || !tr.setCodecPreferences || !caps) return;
+    const h = S.res, w = Math.round(h * 16 / 9); let hw = false;
+    if (navigator.mediaCapabilities && navigator.mediaCapabilities.encodingInfo) {
+      try { const r = await navigator.mediaCapabilities.encodingInfo({ type: 'webrtc', video: { contentType: 'video/H264', width: w, height: h, bitrate: 8e6, framerate: S.fps } }); hw = !!(r.supported && r.powerEfficient); } catch {}
+    } else hw = /iPhone|iPad|Macintosh/.test(navigator.userAgent);   // Apple phones always encode H.264 in hardware
+    if (!hw) return;
+    const isH = c => /h264/i.test(c.mimeType), pm1 = c => /packetization-mode=1/.test(c.sdpFmtpLine || '') ? 1 : 0, high = c => /profile-level-id=64/.test(c.sdpFmtpLine || '') ? 1 : 0;
+    const h264 = caps.codecs.filter(isH).sort((a, b) => (pm1(b) - pm1(a)) || (high(b) - high(a)));
+    if (h264.length) { tr.setCodecPreferences([...h264, ...caps.codecs.filter(c => !isH(c))]); S.codec = 'H.264 (hardware)'; }
+  } catch (e) { console.warn('codec', e); }
+}
 // JPEG fallback (when WebRTC cannot connect on this network)
 const cv = document.createElement('canvas');
 function startJpeg() {
@@ -373,7 +389,7 @@ function startJpeg() {
     if (!ws || ws.readyState !== 1 || ws.bufferedAmount > 1.5e6 || !v.videoWidth) return;
     const big = Math.max(v.videoWidth, v.videoHeight), lim = LOCAL ? 1920 : 1280, k = Math.min(1, lim / big); const w = Math.round(v.videoWidth * k), h = Math.round(v.videoHeight * k);
     if (cv.width !== w) { cv.width = w; cv.height = h; } cv.getContext('2d').drawImage(v, 0, 0, w, h);
-    cv.toBlob(b => b && b.arrayBuffer().then(buf => ws && ws.readyState === 1 && ws.send(buf)), 'image/jpeg', LOCAL ? 0.85 : 0.7);
+    cv.toBlob(b => b && b.arrayBuffer().then(buf => ws && ws.readyState === 1 && ws.send(buf)), 'image/jpeg', LOCAL ? 0.92 : 0.8);
   }, 1000 / Math.min(S.fps, LOCAL ? 25 : 15));
 }
 function stopJpeg() { clearInterval(jpegTimer); jpegTimer = null; pcmStop(); }
@@ -404,6 +420,12 @@ let lossPct = 0, rtcRtt = null;
 // ---------- quality guard: what the phone really sends, and keeping it cool so it never drops quality ----------
 const SQ = { at: 0, bytes: 0, kbps: 0, w: 0, h: 0, fps: 0, limit: 'none', cpuRuns: 0, cooled: false };
 function guardQuality() {
+  // A WiFi link that is losing packets turns a full-size picture into blocks and "scratches". Keep the picture clean:
+  // after a few seconds of heavy loss send a slightly smaller, clean picture, and go back to full sharpness when the link is healthy again.
+  const lossy = lossPct > 4 || (SQ.limit === 'bandwidth' && lossPct > 1.5);
+  SQ.lossRuns = lossy ? (SQ.lossRuns || 0) + 1 : 0; SQ.goodRuns = !lossy && lossPct < 0.8 ? (SQ.goodRuns || 0) + 1 : 0;
+  if (!SQ.protect && SQ.lossRuns >= 3) setProtect(true);
+  else if (SQ.protect && SQ.goodRuns >= 15) setProtect(false);
   // a phone that gets hot or busy lowers the picture: give it less work (fewer frames per second, screen resting) and keep the full sharpness
   SQ.cpuRuns = SQ.limit === 'cpu' ? SQ.cpuRuns + 1 : 0;
   if (SQ.cpuRuns >= 3 && !SQ.cooled && S.fps > 24) {
@@ -412,6 +434,15 @@ function guardQuality() {
     const vs = pc && pc.getSenders().find(x => x.track && x.track.kind === 'video'); if (vs) { const p = vs.getParameters(); if (p.encodings && p.encodings[0]) { p.encodings[0].maxFramerate = 24; vs.setParameters(p).catch(() => {}); } }
     if (S.cool !== false) setRest(true);
   }
+}
+function setProtect(on) {
+  SQ.protect = on; const vs = pc && pc.getSenders().find(x => x.track && x.track.kind === 'video'); if (!vs || !vs.getParameters) return;
+  try { const p = vs.getParameters(); const e0 = p.encodings && p.encodings[0]; if (!e0) return;
+    const full = S.res >= 2160 ? 25e6 : S.res >= 1080 ? 14e6 : 7e6;
+    e0.scaleResolutionDownBy = on ? (S.res >= 1080 ? 1.5 : 1.25) : 1; e0.maxBitrate = on ? Math.round(full * 0.45) : full;
+    p.degradationPreference = on ? 'balanced' : 'maintain-resolution'; vs.setParameters(p).catch(() => {});
+  } catch {}
+  send({ t: 'slog', text: on ? 'Weak WiFi — sending a smaller clean picture to avoid blocks' : 'WiFi healthy again — full sharp picture' });
 }
 // resting screen: black screen, preview off — the phone runs much cooler (double-tap to wake)
 S.cool = localStorage.getItem('nova.cool') !== '0'; let lastTouch = Date.now();
