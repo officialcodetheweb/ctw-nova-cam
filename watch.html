@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Watch live — Nova Studio</title>
+<style>
+  :root { --acc: #ff7a18; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #000; color: #fff; font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden; -webkit-tap-highlight-color: transparent; }
+  video { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+  .top { position: fixed; left: 0; right: 0; top: 0; padding: calc(12px + env(safe-area-inset-top)) 16px 30px; display: flex; align-items: center; gap: 10px; background: linear-gradient(#000c, #0000); transition: opacity .3s; }
+  .live { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: #e11d48; font-weight: 800; font-size: 12px; letter-spacing: .08em; }
+  .live i { width: 7px; height: 7px; border-radius: 50%; background: #fff; animation: blink 1.4s infinite; }
+  .live.wait { background: #444; } .live.wait i { animation: none; opacity: .5; }
+  @keyframes blink { 50% { opacity: .25; } }
+  .name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mode { margin-left: auto; font-size: 12px; color: #fffa; white-space: nowrap; }
+  .bottom { position: fixed; left: 0; right: 0; bottom: 0; padding: 30px 16px calc(14px + env(safe-area-inset-bottom)); display: flex; gap: 10px; justify-content: center; background: linear-gradient(#0000, #000c); transition: opacity .3s; }
+  button { border: 0; border-radius: 999px; padding: 11px 18px; font: 600 15px system-ui, sans-serif; color: #fff; background: #ffffff26; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  button.main { background: var(--acc); color: #1a0d02; }
+  .center { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; pointer-events: none; }
+  .center > div { max-width: 340px; }
+  .spin { width: 42px; height: 42px; margin: 0 auto 14px; border-radius: 50%; border: 3px solid #fff3; border-top-color: var(--acc); animation: sp .9s linear infinite; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+  .center b { display: block; font-size: 18px; margin-bottom: 6px; } .center small { color: #fffa; }
+  .hide { display: none !important; } .faded .top, .faded .bottom { opacity: 0; pointer-events: none; }
+  .brand { position: fixed; right: 14px; bottom: calc(10px + env(safe-area-inset-bottom)); font-size: 11px; color: #fff6; pointer-events: none; }
+</style>
+</head>
+<body>
+<video id="v" playsinline autoplay muted></video>
+<div class="top"><span class="live wait" id="live"><i></i><span id="liveT">CONNECTING</span></span><span class="name" id="nm">Nova Studio</span><span class="mode" id="mode"></span></div>
+<div class="center" id="msg"><div><div class="spin" id="spin"></div><b id="msgT">Connecting to the service…</b><small id="msgS"></small></div></div>
+<div class="bottom"><button class="main" id="snd">🔇 Tap for sound</button><button id="fs">⛶ Full screen</button></div>
+<script>
+'use strict';
+const qs = new URLSearchParams(location.search), P = qs.get('p') || '', W = qs.get('w') || '', SRV = qs.get('s') || '';
+const ONLINE = !!P; const $ = id => document.getElementById(id);
+const v = $('v'); let pc = null, ws = null, peer = null, conn = null, mcall = null, retryT = null, ended = false, gotVideo = false, hold = null;
+$('mode').textContent = ONLINE ? 'Online' : 'Same WiFi · no delay';
+function status(t, s, spin = true) { $('msg').classList.remove('hide'); $('msgT').textContent = t; $('msgS').textContent = s || ''; $('spin').classList.toggle('hide', !spin); }
+function liveOn(on) { $('live').classList.toggle('wait', !on); $('liveT').textContent = on ? 'LIVE' : 'CONNECTING'; }
+function playing() { $('msg').classList.add('hide'); liveOn(true); }
+function lowDelay(p) { try { for (const r of p.getReceivers()) { if ('playoutDelayHint' in r) r.playoutDelayHint = 0; if ('jitterBufferTarget' in r) r.jitterBufferTarget = 0; } } catch {} }
+function attach(stream) {
+  v.srcObject = stream; gotVideo = true; v.play().then(playing).catch(() => { status('Tap to start watching', '', false); document.body.addEventListener('click', () => v.play().then(playing), { once: true }); });
+}
+function retry(why) {
+  if (ended) return; liveOn(false); clearTimeout(retryT);
+  if (hold) { status(hold[0], hold[1], false); retryT = setTimeout(start, 10000); return; }   // waiting for the church: check again quietly
+  status('Reconnecting…', why || 'The picture comes back by itself'); retryT = setTimeout(start, 2500);
+}
+function wait(t, s) { hold = [t, s]; liveOn(false); try { v.srcObject = null; } catch {} gotVideo = false; document.body.classList.remove('faded'); status(t, s, false); if (!ONLINE) { try { ws && ws.close(); } catch {} } }
+// ---------- same WiFi: straight from the church PC, no internet and no delay ----------
+function startLocal() {
+  try { if (ws) { ws.onclose = ws.onmessage = null; ws.close(); } } catch {} try { if (pc) { pc.onconnectionstatechange = null; pc.close(); } } catch {} pc = null;
+  ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
+  const send = o => { try { ws.readyState === 1 && ws.send(JSON.stringify(o)); } catch {} };
+  ws.onopen = () => send({ type: 'watch-join', name: localStorage.getItem('nova.watch.name') || 'Viewer', ua: navigator.userAgent.slice(0, 100) });
+  ws.onclose = () => retry('Lost the church WiFi link');
+  ws.onmessage = async e => {
+    let m; try { m = JSON.parse(e.data); } catch { return; } if (m.type !== 'watch') return;
+    if (m.t === 'name' && m.name) { $('nm').textContent = m.name; document.title = m.name + ' — live'; }
+    if (m.t === 'full') wait('The room is full', 'Too many people are watching on this WiFi right now. This page tries again by itself.');
+    if (m.t === 'off') wait('Watching is not on yet', 'The media team has not switched on watching on phones. This page starts by itself when they do.');
+    if (m.t === 'ended') wait('The service has ended', 'Thank you for watching. God bless you!');
+    if (m.t === 'offer') { hold = null;
+      try { if (pc) { pc.onconnectionstatechange = null; pc.close(); } } catch {}
+      pc = new RTCPeerConnection({ iceServers: [] });
+      pc.ontrack = ev => { lowDelay(pc); if (ev.streams[0] && v.srcObject !== ev.streams[0]) attach(ev.streams[0]); };
+      pc.onicecandidate = ev => { if (ev.candidate) send({ type: 'watch-ice', c: ev.candidate }); };
+      pc.onconnectionstatechange = () => { if (pc && pc.connectionState === 'failed') retry('The WiFi link dropped'); };
+      await pc.setRemoteDescription({ type: 'offer', sdp: m.sdp }); const a = await pc.createAnswer(); await pc.setLocalDescription(a);
+      send({ type: 'watch-answer', sdp: pc.localDescription.sdp });
+    }
+    if (m.t === 'ice' && pc && m.c) pc.addIceCandidate(m.c).catch(() => {});
+  };
+}
+// ---------- online: through the internet from anywhere ----------
+function peerOpts(s) { if (!s) return { debug: 0 }; try { const u = new URL(/^https?:/.test(s) ? s : 'https://' + s); return { debug: 0, host: u.hostname, port: +u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname || '/', secure: u.protocol === 'https:' }; } catch { return { debug: 0 }; } }
+function startOnline() {
+  if (typeof Peer === 'undefined') { const s = document.createElement('script'); s.src = 'peerjs.min.js'; s.onload = startOnline; s.onerror = () => status('Could not load the player', 'Check your internet and refresh.', false); document.head.append(s); return; }
+  try { peer && peer.destroy(); } catch {}
+  peer = new Peer(peerOpts(SRV));
+  peer.on('open', () => {
+    conn = peer.connect(P, { reliable: true, metadata: { kind: 'watch', w: W, ua: navigator.userAgent.slice(0, 100) } });
+    conn.on('data', m => {
+      if (!m || typeof m !== 'object') return;
+      if (m.t === 'name' && m.name) { $('nm').textContent = m.name; document.title = m.name + ' — live'; }
+      if (m.t === 'ice' && m.ice) try { peer.options.config = { ...(peer.options.config || {}), iceServers: m.ice }; } catch {}
+      if (m.t === 'denied') { ended = true; status('This link is no longer valid', m.reason || 'Ask the church for the new watch link.', false); }
+      if (m.t === 'full') wait('Too many viewers right now', (m.reason || 'Please watch on the church YouTube or Facebook page.') + ' This page tries again by itself.');
+      if (m.t === 'ended') wait('The service has ended', m.reason || 'Thank you for watching. God bless you!');
+      if (m.t === 'off') wait('Watching is not on yet', 'The media team has not switched on watching online. This page starts by itself when they do.');
+    });
+    conn.on('close', () => retry('Lost the link to the church'));
+  });
+  peer.on('call', call => {
+    if (!call.metadata || call.metadata.kind !== 'watch') { try { call.close(); } catch {} return; }
+    hold = null; try { mcall && mcall.close(); } catch {} mcall = call; call.answer();
+    call.on('stream', s => { if (call.peerConnection) lowDelay(call.peerConnection); attach(s); });
+    call.on('close', () => retry());
+    const pcw = () => { const p = call.peerConnection; if (!p) return setTimeout(pcw, 200); p.addEventListener('connectionstatechange', () => { if (p.connectionState === 'failed') retry('The internet link dropped'); }); }; pcw();
+  });
+  peer.on('error', e => { if (e.type === 'peer-unavailable') { hold = ['The church is not live yet', 'This page connects by itself when the service starts.']; retry(); } else retry(); });
+  peer.on('disconnected', () => { try { peer.reconnect(); } catch {} });
+}
+function start() { if (ended) return; status(ONLINE ? 'Connecting to the service…' : 'Connecting to the church PC…', ''); ONLINE ? startOnline() : startLocal(); }
+// controls
+$('snd').onclick = e => { e.stopPropagation(); v.muted = !v.muted; v.play().catch(() => {}); $('snd').textContent = v.muted ? '🔇 Tap for sound' : '🔊 Sound on'; $('snd').classList.toggle('main', v.muted); };
+$('fs').onclick = e => { e.stopPropagation(); const d = document.documentElement; if (document.fullscreenElement) document.exitFullscreen(); else if (d.requestFullscreen) d.requestFullscreen().catch(() => {}); else if (v.webkitEnterFullscreen) v.webkitEnterFullscreen(); };
+let fadeT; const wake = () => { document.body.classList.remove('faded'); clearTimeout(fadeT); fadeT = setTimeout(() => gotVideo && document.body.classList.add('faded'), 4000); };
+document.addEventListener('click', wake); document.addEventListener('touchstart', wake, { passive: true }); wake();
+// keep the screen on while watching
+async function keepAwake() { try { if ('wakeLock' in navigator) { const l = await navigator.wakeLock.request('screen'); l.addEventListener('release', () => setTimeout(keepAwake, 1000)); } } catch {} }
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') keepAwake(); }); keepAwake();
+start();
+</script>
+<div class="brand">Nova Studio</div>
+</body>
+</html>
